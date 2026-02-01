@@ -1,0 +1,87 @@
+0 verbose cli /usr/local/bin/node /usr/local/bin/npm
+1 info using npm@11.8.0
+2 info using node@v24.13.0
+3 silly config load:file:/usr/local/lib/node_modules/npm/npmrc
+4 silly config load:file:/Users/minhazuddinchowdhury/Documents/Dev/tigoo-mvp-v1/.npmrc
+5 silly config load:file:/Users/minhazuddinchowdhury/.npmrc
+6 silly config load:file:/usr/local/etc/npmrc
+7 verbose title npm install @react-navigation/stack react-native-gesture-handler react-native-screens@~4.16.0 react-native-safe-area-context@~5.6.0
+8 verbose argv "install" "@react-navigation/stack" "react-native-gesture-handler" "react-native-screens@~4.16.0" "react-native-safe-area-context@~5.6.0"
+9 verbose logfile logs-max:10 dir:/Users/minhazuddinchowdhury/Documents/Dev/tigoo-mvp-v1/.npm-cache/_logs/2026-02-01T13_32_22_604Z-
+10 verbose logfile /Users/minhazuddinchowdhury/Documents/Dev/tigoo-mvp-v1/.npm-cache/_logs/2026-02-01T13_32_22_604Z-debug-0.log
+11 silly logfile done cleaning log files
+12 silly packumentCache heap:4496293888 maxSize:1124073472 maxEntrySize:562036736
+13 silly idealTree buildDeps
+14 silly fetch manifest react-native-safe-area-context@~5.6.0
+15 silly packumentCache full:https://registry.npmjs.org/react-native-safe-area-context cache-miss
+16 http fetch GET 200 https://registry.npmjs.org/react-native-safe-area-context 1189ms (cache revalidated)
+17 silly packumentCache full:https://registry.npmjs.org/react-native-safe-area-context set size:657519 disposed:false
+18 silly fetch manifest react@19.1.0
+19 silly packumentCache full:https://registry.npmjs.org/react cache-miss
+20 http fetch GET 200 https://registry.npmjs.org/react 41ms (cache revalidated)
+21 silly packumentCache full:https://registry.npmjs.org/react set size:6438906 disposed:false
+22 silly fetch manifest react-native@0.81.5
+23 silly packumentCache full:https://registry.npmjs.org/react-native cache-miss
+24 http fetch GET 200 https://registry.npmjs.org/react-native 947ms (cache revalidated)
+25 silly packumentCache full:https://registry.npmjs.org/react-native set size:14756030 disposed:false
+26 silly fetch manifest @types/react@~19.1.0
+27 silly packumentCache full:https://registry.npmjs.org/@types%2freact cache-miss
+28 http fetch GET 200 https://registry.npmjs.org/@types%2freact 42ms (cache revalidated)
+29 silly packumentCache full:https://registry.npmjs.org/@types%2freact set size:2555610 disposed:false
+30 silly fetch manifest react-native-screens@~4.16.0
+31 silly packumentCache full:https://registry.npmjs.org/react-native-screens cache-miss
+32 http fetch GET 200 https://registry.npmjs.org/react-native-screens 285ms (cache revalidated)
+33 silly packumentCache full:https://registry.npmjs.org/react-native-screens set size:3233601 disposed:false
+34 silly fetch manifest @react-navigation/stack@*
+35 silly packumentCache full:https://registry.npmjs.org/@react-navigation%2fstack cache-miss
+36 http fetch GET 200 https://registry.npmjs.org/@react-navigation%2fstack 865ms (cache miss)
+37 silly packumentCache full:https://registry.npmjs.org/@react-navigation%2fstack set size:undefined disposed:false
+38 silly fetch manifest @react-navigation/native@^6.1.18
+39 silly packumentCache full:https://registry.npmjs.org/@react-navigation%2fnative cache-miss
+40 http fetch GET 200 https://registry.npmjs.org/@react-navigation%2fnative 811ms (cache revalidated)
+41 silly packumentCache full:https://registry.npmjs.org/@react-navigation%2fnative set size:1003473 disposed:false
+42 silly fetch manifest @react-navigation/native@^7.1.28
+43 silly packumentCache full:https://registry.npmjs.org/@react-navigation%2fnative cache-miss
+44 http cache https://registry.npmjs.org/@react-navigation%2fnative 11ms (cache hit)
+45 silly packumentCache full:https://registry.npmjs.org/@react-navigation%2fnative set size:1003473 disposed:false
+46 verbose stack Error: unable to resolve dependency tree
+46 verbose stack     at #failPeerConflict (/usr/local/lib/node_modules/npm/node_modules/@npmcli/arborist/lib/arborist/build-ideal-tree.js:1404:25)
+46 verbose stack     at #loadPeerSet (/usr/local/lib/node_modules/npm/node_modules/@npmcli/arborist/lib/arborist/build-ideal-tree.js:1370:33)
+46 verbose stack     at async #buildDepStep (/usr/local/lib/node_modules/npm/node_modules/@npmcli/arborist/lib/arborist/build-ideal-tree.js:918:11)
+46 verbose stack     at async Arborist.buildIdealTree (/usr/local/lib/node_modules/npm/node_modules/@npmcli/arborist/lib/arborist/build-ideal-tree.js:170:7)
+46 verbose stack     at async Promise.all (index 1)
+46 verbose stack     at async Arborist.reify (/usr/local/lib/node_modules/npm/node_modules/@npmcli/arborist/lib/arborist/reify.js:110:5)
+46 verbose stack     at async Install.exec (/usr/local/lib/node_modules/npm/lib/commands/install.js:150:5)
+46 verbose stack     at async Npm.exec (/usr/local/lib/node_modules/npm/lib/npm.js:208:9)
+46 verbose stack     at async module.exports (/usr/local/lib/node_modules/npm/lib/cli/entry.js:67:5)
+47 error code ERESOLVE
+48 error ERESOLVE unable to resolve dependency tree
+49 error
+50 error While resolving: tigoo-mvp-v1@1.0.0
+50 error Found: @react-navigation/native@6.1.18
+50 error node_modules/@react-navigation/native
+50 error   @react-navigation/native@"^6.1.18" from the root project
+50 error
+50 error Could not resolve dependency:
+50 error peer @react-navigation/native@"^7.1.28" from @react-navigation/stack@7.6.16
+50 error node_modules/@react-navigation/stack
+50 error   @react-navigation/stack@"*" from the root project
+50 error
+50 error Fix the upstream dependency conflict, or retry
+50 error this command with --force or --legacy-peer-deps
+50 error to accept an incorrect (and potentially broken) dependency resolution.
+51 error
+51 error
+51 error For a full report see:
+51 error /Users/minhazuddinchowdhury/Documents/Dev/tigoo-mvp-v1/.npm-cache/_logs/2026-02-01T13_32_22_604Z-eresolve-report.txt
+52 silly unfinished npm timer reify 1769952742975
+53 silly unfinished npm timer reify:loadTrees 1769952742979
+54 silly unfinished npm timer idealTree:buildDeps 1769952743352
+55 silly unfinished npm timer idealTree:#root 1769952743353
+56 verbose cwd /Users/minhazuddinchowdhury/Documents/Dev/tigoo-mvp-v1
+57 verbose os Darwin 25.2.0
+58 verbose node v24.13.0
+59 verbose npm  v11.8.0
+60 verbose exit 1
+61 verbose code 1
+62 error A complete log of this run can be found in: /Users/minhazuddinchowdhury/Documents/Dev/tigoo-mvp-v1/.npm-cache/_logs/2026-02-01T13_32_22_604Z-debug-0.log
