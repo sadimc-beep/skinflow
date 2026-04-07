@@ -8,6 +8,7 @@ from .models import Patient
 from .serializers import PatientSerializer
 from core.api_auth import get_current_org
 from core.permissions import HasRolePermission, IsKioskToken
+from saas.limits import check_org_limit
 
 class StandardResultsSetPagination(pagination.PageNumberPagination):
     page_size = 50
@@ -35,6 +36,7 @@ class PatientViewSet(viewsets.ModelViewSet):
         Auto-assign the patient to the current organization on creation.
         """
         org = get_current_org(self.request)
+        check_org_limit(org, 'patients')
         serializer.save(organization=org)
         
     def perform_destroy(self, instance):

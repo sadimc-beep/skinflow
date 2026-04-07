@@ -13,4 +13,5 @@ urlpatterns = [
     path('api/inventory/', include('inventory.urls')),
     path('api/accounting/', include('accounting.urls')),
     path('api/saas/', include('saas.urls')),
+    path('api/public/', include('clinical.public_urls')),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

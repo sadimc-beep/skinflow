@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Settings, Users, Shield, FileText } from 'lucide-react';
+import { Settings, Users, Shield, FileText, CalendarCheck } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useAuth } from '@/lib/context/AuthContext';
 
@@ -11,6 +11,7 @@ const navItems = [
     { name: 'Staff Management', href: '/settings/staff', icon: Users, exact: false, permission: 'settings.write' },
     { name: 'Roles & Permissions', href: '/settings/roles', icon: Shield, exact: false, permission: 'settings.write' },
     { name: 'Consent Templates', href: '/settings/consent-templates', icon: FileText, exact: false, permission: 'clinical.write' },
+    { name: 'Online Booking', href: '/settings/booking', icon: CalendarCheck, exact: false, permission: 'settings.write' },
 ];
 
 export default function SettingsLayout({ children }: { children: React.ReactNode }) {

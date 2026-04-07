@@ -1,7 +1,11 @@
 import uuid
+import datetime
 from django.db import models
 from django.conf import settings
 from django.utils.translation import gettext_lazy as _
+
+def _default_working_days():
+    return ["MON", "TUE", "WED", "THU", "FRI", "SAT"]
 
 class TimeStampedModel(models.Model):
     """
@@ -86,6 +90,19 @@ class ClinicSettings(TimeStampedModel):
 
     def __str__(self):
         return f"Settings for {self.organization.name}"
+
+class BookingSettings(TimeStampedModel):
+    """Online booking configuration per clinic."""
+    organization = models.OneToOneField(Organization, on_delete=models.CASCADE, related_name='booking_settings')
+    is_booking_enabled = models.BooleanField(default=True)
+    slot_duration_mins = models.PositiveIntegerField(default=30)
+    working_days = models.JSONField(default=_default_working_days, help_text='List of 3-letter day codes: MON, TUE, WED, THU, FRI, SAT, SUN')
+    start_time = models.TimeField(default=datetime.time(9, 0))
+    end_time = models.TimeField(default=datetime.time(18, 0))
+    advance_booking_days = models.PositiveIntegerField(default=30, help_text='How many days ahead patients can book')
+
+    def __str__(self):
+        return f"BookingSettings for {self.organization.name}"
 
 class Role(TimeStampedModel):
     """

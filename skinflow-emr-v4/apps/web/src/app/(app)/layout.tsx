@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/context/AuthContext';
+import { UsageProvider } from '@/lib/context/UsageContext';
 import { AppShell } from '@/components/shell/AppShell';
 import { Loader2 } from 'lucide-react';
 
@@ -28,5 +29,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         return null; // redirect is in-progress
     }
 
-    return <AppShell>{children}</AppShell>;
+    return (
+        <UsageProvider>
+            <AppShell>{children}</AppShell>
+        </UsageProvider>
+    );
 }

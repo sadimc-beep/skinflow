@@ -162,6 +162,10 @@ export const saasApi = {
     listSubscriptions: () => fetchApi<Subscription[]>('/saas/subscriptions/'),
     createSubscription: (data: Partial<Subscription>) => fetchApi<Subscription>('/saas/subscriptions/', { method: 'POST', body: JSON.stringify(data) }),
     updateSubscription: (id: number, data: Partial<Subscription>) => fetchApi<Subscription>(`/saas/subscriptions/${id}/`, { method: 'PATCH', body: JSON.stringify(data) }),
+    suspendSubscription: (id: number) => fetchApi<Subscription>(`/saas/subscriptions/${id}/suspend/`, { method: 'POST' }),
+    reinstateSubscription: (id: number) => fetchApi<Subscription>(`/saas/subscriptions/${id}/reinstate/`, { method: 'POST' }),
+    setSubscriptionOverride: (id: number, limit_type: string, value: number | null) =>
+        fetchApi<Subscription>(`/saas/subscriptions/${id}/set_override/`, { method: 'POST', body: JSON.stringify({ limit_type, value }) }),
 
     // Audit logs
     listAuditLogs: (params?: Record<string, string>) => fetchApi<AuditLogEntry[]>('/saas/audit-logs/', { params }),

@@ -1,6 +1,7 @@
 import { Sidebar } from './Sidebar';
 import { TopNav } from './TopNav';
 import { RouteGuard } from './RouteGuard';
+import { UsageLimitBanner } from './UsageLimitBanner';
 
 export function AppShell({ children }: { children: React.ReactNode }) {
     return (
@@ -13,6 +14,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 {/* White/cream content surface */}
                 <div className="flex-1 bg-[#F7F3ED] rounded-[1.75rem] flex flex-col overflow-hidden shadow-[0_2px_24px_rgba(28,25,23,0.08)]">
                     <TopNav />
+                    <UsageLimitBanner />
                     <main className="flex-1 overflow-y-auto p-6 sm:p-8 lg:p-10">
                         <RouteGuard>
                             {children}

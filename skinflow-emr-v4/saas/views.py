@@ -66,6 +66,8 @@ class SaaSOrganizationViewSet(viewsets.ModelViewSet):
             return Response(BranchSerializer(branches, many=True).data)
             
         if request.method == 'POST':
+            from saas.limits import check_org_limit
+            check_org_limit(org, 'branches')
             serializer = BranchSerializer(data={**request.data, 'organization': org.id})
             serializer.is_valid(raise_exception=True)
             branch = serializer.save()
@@ -260,6 +262,62 @@ class SubscriptionViewSet(viewsets.ModelViewSet):
     queryset = Subscription.objects.select_related('organization', 'plan').all()
     serializer_class = SubscriptionSerializer
     permission_classes = [IsSaaSAdmin]
+
+    @action(detail=True, methods=['post'])
+    def suspend(self, request, pk=None):
+        """Suspend a subscription — blocks all write operations for the org."""
+        sub = self.get_object()
+        if sub.status == Subscription.Status.SUSPENDED:
+            return Response({'detail': 'Already suspended.'}, status=status.HTTP_400_BAD_REQUEST)
+        sub.status = Subscription.Status.SUSPENDED
+        sub.save(update_fields=['status', 'updated_at'])
+        log_action(request.user, 'subscription.suspended', 'Subscription', sub.id,
+                   sub.organization, request=request)
+        return Response(SubscriptionSerializer(sub).data)
+
+    @action(detail=True, methods=['post'])
+    def reinstate(self, request, pk=None):
+        """Reinstate a suspended or past-due subscription back to ACTIVE."""
+        sub = self.get_object()
+        if sub.status == Subscription.Status.ACTIVE:
+            return Response({'detail': 'Already active.'}, status=status.HTTP_400_BAD_REQUEST)
+        sub.status = Subscription.Status.ACTIVE
+        sub.save(update_fields=['status', 'updated_at'])
+        log_action(request.user, 'subscription.reinstated', 'Subscription', sub.id,
+                   sub.organization, request=request)
+        return Response(SubscriptionSerializer(sub).data)
+
+    @action(detail=True, methods=['post'])
+    def set_override(self, request, pk=None):
+        """
+        Set a per-org limit override. Body: {"limit_type": "patients", "value": 600}
+        Pass value=null to remove the override and revert to plan default.
+        """
+        sub = self.get_object()
+        limit_type = request.data.get('limit_type')
+        value = request.data.get('value')
+
+        allowed_types = ('patients',)
+        if limit_type not in allowed_types:
+            return Response(
+                {'detail': f'limit_type must be one of: {", ".join(allowed_types)}'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        overrides = dict(sub.limit_overrides)
+        if value is None:
+            overrides.pop(limit_type, None)
+        else:
+            try:
+                overrides[limit_type] = int(value)
+            except (TypeError, ValueError):
+                return Response({'detail': 'value must be an integer or null.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        sub.limit_overrides = overrides
+        sub.save(update_fields=['limit_overrides', 'updated_at'])
+        log_action(request.user, 'subscription.override_set', 'Subscription', sub.id,
+                   sub.organization, changes={'limit_type': limit_type, 'value': value}, request=request)
+        return Response(SubscriptionSerializer(sub).data)
 
 
 # ─── Audit Logs ──────────────────────────────────────────────────

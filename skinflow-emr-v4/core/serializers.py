@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from .models import Organization, Provider, ClinicSettings, Role, ClinicStaff
+from .models import Organization, Provider, ClinicSettings, BookingSettings, Role, ClinicStaff
 
 User = get_user_model()
 
@@ -32,6 +32,12 @@ class RoleSerializer(serializers.ModelSerializer):
         model = Role
         fields = ['id', 'name', 'description', 'permissions', 'organization', 'created_at']
         read_only_fields = ['organization', 'created_at']
+
+class BookingSettingsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = BookingSettings
+        fields = '__all__'
+        read_only_fields = ['organization']
 
 class ClinicStaffSerializer(serializers.ModelSerializer):
     user_details = UserSerializer(source='user', read_only=True)

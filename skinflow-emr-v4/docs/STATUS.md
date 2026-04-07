@@ -217,11 +217,17 @@ Highest daily value for clinic staff.
 8. ~~Consumable Requisition Workflow~~ **DONE**
 9. ~~Accounting: Bank Feed Import & Reconciliation~~ **DONE**
 
-### Sprint 4 — Growth ← Current Sprint
+### Sprint 4 — Growth ✅ Complete (April 7, 2026)
 
-10. Online Appointment Booking
-11. SaaS Usage Limit Enforcement
+10. ~~Online Appointment Booking~~ **DONE**
+11. ~~SaaS Usage Limit Enforcement~~ **DONE**
 
 ---
 
 *Last reviewed: April 2026*
+
+---
+
+## v0.4.0 — All Planned Sprints Complete
+
+As of April 7, 2026, all four planned development sprints are complete. Sprint 1 delivered the infrastructure foundations: multi-tenancy production resolution, full RBAC enforcement, and file upload/storage. Sprint 2 built out the core clinical UX layer: tablet-based patient check-in, consent forms with digital signature, face mapping for injectable documentation, and print templates for prescriptions and invoices. Sprint 3 completed the operations module: consumable requisition workflow with per-session tracking and the accounting bank feed import and reconciliation system. Sprint 4 delivered the growth features: a public-facing online appointment booking flow (3-step wizard, clinic-configurable schedule, `BK-XXXXXX` booking references) and end-to-end SaaS usage limit enforcement (plan limits on patients/users/branches, HTTP 402 hard blocks, subscription status gating on all write operations, frontend usage banners, feature flag gates on Inventory/Accounting/Procedure Sessions, and super admin suspend/reinstate controls).

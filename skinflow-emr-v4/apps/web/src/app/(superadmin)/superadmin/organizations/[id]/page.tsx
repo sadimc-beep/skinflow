@@ -680,8 +680,28 @@ function RolesTab({ orgId, roles, onRefresh }: { orgId: number; roles: OrgRole[]
 }
 
 /* ─── Subscription Tab ───────────────────────────────────────── */
+function UsageBar({ label, current, max }: { label: string; current: number; max: number }) {
+    const unlimited = max === 0;
+    const pct = unlimited ? 0 : Math.min(100, Math.round((current / max) * 100));
+    const color = pct >= 100 ? 'bg-red-500' : pct >= 80 ? 'bg-amber-400' : 'bg-[#7A9E8A]';
+    return (
+        <div className="space-y-1">
+            <div className="flex items-center justify-between text-xs text-[#78706A]">
+                <span className="font-medium capitalize">{label}</span>
+                <span>{current} / {unlimited ? '∞' : max}{!unlimited && <span className="text-[#A0978D] ml-1">({pct}%)</span>}</span>
+            </div>
+            {!unlimited && (
+                <div className="h-1.5 rounded-full bg-[#E8E1D6] overflow-hidden">
+                    <div className={`h-full rounded-full transition-all ${color}`} style={{ width: `${pct}%` }} />
+                </div>
+            )}
+        </div>
+    );
+}
+
 function SubscriptionTab({ org, plans, subscription, onRefresh }: { org: SaaSOrganization; plans: Plan[]; subscription: Subscription | null; onRefresh: () => void; }) {
     const [saving, setSaving] = useState(false);
+    const [actioning, setActioning] = useState(false);
     const [form, setForm] = useState({
         plan_id: subscription?.plan?.toString() || '',
         billing_cycle: subscription?.billing_cycle || 'MONTHLY',
@@ -701,6 +721,34 @@ function SubscriptionTab({ org, plans, subscription, onRefresh }: { org: SaaSOrg
     const estimated = form.billing_cycle === 'MONTHLY'
         ? baseMonthly + (form.extra_users * extraUserCost) + (form.extra_branches * extraBranchCost)
         : annualMonthly + (form.extra_users * extraUserCost * 12) + (form.extra_branches * extraBranchCost * 12);
+
+    const handleSuspend = async () => {
+        if (!subscription) return;
+        setActioning(true);
+        try {
+            await saasApi.suspendSubscription(subscription.id);
+            toast.success('Subscription suspended.');
+            onRefresh();
+        } catch (e: any) {
+            toast.error(e.message || 'Failed to suspend.');
+        } finally {
+            setActioning(false);
+        }
+    };
+
+    const handleReinstate = async () => {
+        if (!subscription) return;
+        setActioning(true);
+        try {
+            await saasApi.reinstateSubscription(subscription.id);
+            toast.success('Subscription reinstated.');
+            onRefresh();
+        } catch (e: any) {
+            toast.error(e.message || 'Failed to reinstate.');
+        } finally {
+            setActioning(false);
+        }
+    };
 
     const handleSave = async () => {
         if (!form.plan_id) { toast.error('Please select a plan.'); return; }
@@ -739,6 +787,37 @@ function SubscriptionTab({ org, plans, subscription, onRefresh }: { org: SaaSOrg
 
     return (
         <div className="p-6 space-y-6">
+            {/* Current Usage */}
+            {subscription && (
+                <div className="rounded-xl border border-[#E8E1D6] p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                        <p className="text-xs font-bold text-[#78706A] uppercase tracking-wider">Current Usage</p>
+                        <div className="flex items-center gap-2">
+                            <span className={`px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${
+                                subscription.status === 'ACTIVE' ? 'bg-[#7A9E8A]/15 text-[#7A9E8A]' :
+                                subscription.status === 'SUSPENDED' ? 'bg-orange-100 text-orange-700' :
+                                subscription.status === 'CANCELLED' ? 'bg-red-100 text-red-700' :
+                                'bg-[#E8E1D6] text-[#78706A]'
+                            }`}>{subscription.status}</span>
+                            {subscription.status !== 'CANCELLED' && subscription.status !== 'SUSPENDED' && (
+                                <button onClick={handleSuspend} disabled={actioning} className="px-3 py-1 text-xs font-semibold border border-orange-200 text-orange-700 hover:bg-orange-50 rounded-full transition disabled:opacity-50">
+                                    {actioning ? '…' : 'Suspend'}
+                                </button>
+                            )}
+                            {(subscription.status === 'SUSPENDED' || subscription.status === 'PAST_DUE') && (
+                                <button onClick={handleReinstate} disabled={actioning} className="px-3 py-1 text-xs font-semibold border border-[#7A9E8A]/40 text-[#7A9E8A] hover:bg-[#7A9E8A]/10 rounded-full transition disabled:opacity-50">
+                                    {actioning ? '…' : 'Reinstate'}
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                    <div className="space-y-2.5">
+                        <UsageBar label="users" current={subscription.current_users ?? 0} max={subscription.max_users} />
+                        <UsageBar label="branches" current={subscription.current_branches ?? 0} max={subscription.max_branches} />
+                    </div>
+                </div>
+            )}
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <Field label="Subscription Plan" required>
                     <select className={inp} value={form.plan_id} onChange={e => setForm(f => ({ ...f, plan_id: e.target.value }))}>

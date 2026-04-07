@@ -1,6 +1,7 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from . import views
+from .views import BookingSettingsView, OrgUsageView
 
 router = DefaultRouter()
 router.register(r'organizations', views.OrganizationViewSet, basename='organization')
@@ -11,6 +12,8 @@ router.register(r'staff', views.ClinicStaffViewSet, basename='staff')
 urlpatterns = [
     path('', include(router.urls)),
     path('settings/', views.ClinicSettingsView.as_view(), name='clinic-settings'),
+    path('booking-settings/', BookingSettingsView.as_view(), name='booking-settings'),
+    path('usage/', OrgUsageView.as_view(), name='org-usage'),
     path('dashboard/stats/', views.DashboardStatsView.as_view(), name='dashboard-stats'),
     path('dashboard/role-stats/', views.RoleDashboardStatsView.as_view(), name='dashboard-role-stats'),
     path('auth/login/', views.LoginView.as_view(), name='auth-login'),

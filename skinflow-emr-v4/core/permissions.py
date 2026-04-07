@@ -1,4 +1,5 @@
 from rest_framework import permissions
+from rest_framework.exceptions import PermissionDenied
 
 
 class HasRolePermission(permissions.BasePermission):
@@ -18,6 +19,10 @@ class HasRolePermission(permissions.BasePermission):
         1. Django superuser              → always allowed
         2. ClinicStaff.is_org_admin=True → always allowed within their org
         3. Role.permissions check        → domain + action must be present
+
+    Subscription status enforcement:
+        SUSPENDED → read-only (GET/HEAD/OPTIONS only)
+        CANCELLED → all requests blocked
     """
 
     def has_permission(self, request, view):
@@ -25,7 +30,7 @@ class HasRolePermission(permissions.BasePermission):
         if not request.user or not request.user.is_authenticated:
             return False
 
-        # 2. Superuser bypass
+        # 2. Superuser bypass (not subject to subscription limits)
         if request.user.is_superuser:
             return True
 
@@ -34,21 +39,33 @@ class HasRolePermission(permissions.BasePermission):
         if not staff or not staff.is_active:
             return False
 
-        # 4. Org admin bypass
+        # 4. Subscription status check
+        try:
+            sub = staff.organization.subscription
+            if sub.status == 'CANCELLED':
+                raise PermissionDenied('Your subscription has been cancelled. Please contact support.')
+            if sub.status == 'SUSPENDED' and request.method not in permissions.SAFE_METHODS:
+                raise PermissionDenied('Your subscription is suspended. Write operations are disabled.')
+        except PermissionDenied:
+            raise
+        except Exception:
+            pass  # No subscription record — allow (e.g. org created but not yet subscribed)
+
+        # 5. Org admin bypass
         if staff.is_org_admin:
             return True
 
-        # 5. Must have a role
+        # 6. Must have a role
         role = staff.role
         if not role:
             return False
 
-        # 6. ViewSet must declare permission_module
+        # 7. ViewSet must declare permission_module
         domain = getattr(view, 'permission_module', None)
         if not domain:
             return False
 
-        # 7. Map HTTP method → action
+        # 8. Map HTTP method → action
         if request.method in permissions.SAFE_METHODS:
             action = 'read'
         elif request.method == 'DELETE':
@@ -56,7 +73,7 @@ class HasRolePermission(permissions.BasePermission):
         else:
             action = 'write'
 
-        # 8. Check role permissions JSON
+        # 9. Check role permissions JSON
         user_perms = role.permissions
         if not isinstance(user_perms, dict):
             return False

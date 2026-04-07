@@ -5,6 +5,7 @@ from .models import Organization, Provider
 from .serializers import OrganizationSerializer, ProviderSerializer
 from .api_auth import get_current_org
 from .permissions import HasRolePermission
+from saas.limits import check_org_limit
 from patients.views import StandardResultsSetPagination
 
 class OrganizationViewSet(viewsets.ReadOnlyModelViewSet):
@@ -226,6 +227,8 @@ class ClinicStaffViewSet(viewsets.ModelViewSet):
         if User.objects.filter(username=username).exists():
             return Response({'error': 'Username already taken.'}, status=400)
 
+        check_org_limit(org, 'users')
+
         user = User.objects.create_user(
             username=username, password=password,
             first_name=first_name, last_name=last_name, email=email
@@ -398,3 +401,40 @@ class RoleDashboardStatsView(APIView):
             }
 
         return Response({'role': role_name, 'stats': data})
+
+
+from .models import BookingSettings
+from .serializers import BookingSettingsSerializer
+
+class BookingSettingsView(APIView):
+    """GET/PATCH singleton booking settings for the current org."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        org = get_current_org(request)
+        settings_obj, _ = BookingSettings.objects.get_or_create(organization=org)
+        return Response(BookingSettingsSerializer(settings_obj).data)
+
+    def patch(self, request):
+        org = get_current_org(request)
+        settings_obj, _ = BookingSettings.objects.get_or_create(organization=org)
+        serializer = BookingSettingsSerializer(settings_obj, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        from rest_framework import status as drf_status
+        return Response(serializer.errors, status=drf_status.HTTP_400_BAD_REQUEST)
+
+
+class OrgUsageView(APIView):
+    """
+    GET /api/core/usage/
+    Returns the current org's subscription plan, status, feature flags,
+    and per-limit usage counters. Used by frontend UsageContext.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        from saas.limits import get_usage
+        org = get_current_org(request)
+        return Response(get_usage(org))

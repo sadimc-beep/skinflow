@@ -14,7 +14,11 @@ class Plan(TimeStampedModel):
     price_per_extra_user = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     included_branches = models.PositiveIntegerField(default=1)
     price_per_extra_branch = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    # Feature flags — {"accounting": true, "inventory": true, "marketing": false}
+    # Hard limits — 0 = unlimited
+    max_patients = models.PositiveIntegerField(default=0, help_text='0 = unlimited')
+    max_monthly_appointments = models.PositiveIntegerField(default=0, help_text='0 = unlimited (enforcement deferred)')
+    # Feature flags — keys: inventory, accounting, procedure_sessions, packages,
+    #   marketing_app, custom_reports, api_access, multi_branch, online_booking
     features = models.JSONField(default=dict, blank=True)
     is_active = models.BooleanField(default=True)
     sort_order = models.PositiveIntegerField(default=0)
@@ -55,6 +59,10 @@ class Subscription(TimeStampedModel):
     extra_branches = models.PositiveIntegerField(default=0)
     has_marketing_addon = models.BooleanField(default=False)
 
+    # Per-org limit overrides set by super admin (null = use plan default)
+    # Example: {"patients": 600} overrides plan.max_patients for this org
+    limit_overrides = models.JSONField(default=dict, blank=True)
+
     # Computed total (updated on save)
     monthly_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
 
@@ -73,6 +81,11 @@ class Subscription(TimeStampedModel):
     @property
     def max_branches(self):
         return self.plan.included_branches + self.extra_branches
+
+    @property
+    def effective_max_patients(self):
+        """Returns override if set, else plan default. 0 = unlimited."""
+        return self.limit_overrides.get('patients', self.plan.max_patients)
 
     def __str__(self):
         return f"{self.organization.name} — {self.plan.name} ({self.get_status_display()})"

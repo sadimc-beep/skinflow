@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { clsx } from 'clsx';
 import { useAuth } from '@/lib/context/AuthContext';
+import { useUsage } from '@/lib/context/UsageContext';
 import {
     LayoutDashboard,
     Users,
@@ -14,7 +15,7 @@ import {
     Settings,
     LogOut,
     CreditCard,
-    Shield,
+    Lock,
 } from 'lucide-react';
 
 const mainNav = [
@@ -27,8 +28,8 @@ const clinicalNav = [
 ];
 
 const operationsNav = [
-    { name: 'Finance', href: '/finance', icon: BookOpen, permission: 'accounting.read', activePrefixes: ['/finance', '/billing', '/accounting'] },
-    { name: 'Inventory', href: '/store', icon: Package, permission: 'inventory.read', activePrefixes: ['/store', '/inventory'] },
+    { name: 'Finance', href: '/finance', icon: BookOpen, permission: 'accounting.read', activePrefixes: ['/finance', '/billing', '/accounting'], featureKey: 'accounting' },
+    { name: 'Inventory', href: '/store', icon: Package, permission: 'inventory.read', activePrefixes: ['/store', '/inventory'], featureKey: 'inventory' },
     { name: 'Point of Sale', href: '/pos', icon: ShoppingCart, permission: 'pos.read', activePrefixes: ['/pos'] },
 ];
 
@@ -45,15 +46,22 @@ type NavItem = {
     icon: React.ComponentType<{ className?: string }>;
     permission: string | null;
     activePrefixes?: string[];
+    featureKey?: string;
 };
 
-function renderNavGroup(items: NavItem[], pathname: string | null, hasPermission: (p: string) => boolean) {
+function renderNavGroup(
+    items: NavItem[],
+    pathname: string | null,
+    hasPermission: (p: string) => boolean,
+    hasFeature: (key: string) => boolean,
+) {
     return items
         .filter(item => item.permission === null || hasPermission(item.permission))
         .map((item) => {
             const isActive = item.activePrefixes
                 ? item.activePrefixes.some((prefix: string) => pathname?.startsWith(prefix))
                 : pathname?.startsWith(item.href);
+            const isLocked = !!item.featureKey && !hasFeature(item.featureKey);
             return (
                 <Link
                     key={item.name}
@@ -62,7 +70,9 @@ function renderNavGroup(items: NavItem[], pathname: string | null, hasPermission
                         'group flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150',
                         isActive
                             ? 'bg-[#1C1917] text-[#F7F3ED]'
-                            : 'text-[#78706A] hover:text-[#1C1917] hover:bg-[#D9D0C5]/60'
+                            : isLocked
+                                ? 'text-[#A0978D] hover:text-[#78706A] hover:bg-[#D9D0C5]/40 opacity-60'
+                                : 'text-[#78706A] hover:text-[#1C1917] hover:bg-[#D9D0C5]/60'
                     )}
                 >
                     <item.icon className={clsx(
@@ -70,6 +80,7 @@ function renderNavGroup(items: NavItem[], pathname: string | null, hasPermission
                         isActive ? 'text-[#F7F3ED]' : 'text-[#A0978D] group-hover:text-[#1C1917]'
                     )} />
                     <span className="flex-1">{item.name}</span>
+                    {isLocked && <Lock className="h-3 w-3 text-[#A0978D] shrink-0" />}
                 </Link>
             );
         });
@@ -78,6 +89,7 @@ function renderNavGroup(items: NavItem[], pathname: string | null, hasPermission
 export function Sidebar() {
     const pathname = usePathname();
     const { user, logout, hasPermission } = useAuth();
+    const { hasFeature } = useUsage();
 
     const visibleNav = navigation.filter(item =>
         item.permission === null || hasPermission(item.permission)
@@ -110,7 +122,7 @@ export function Sidebar() {
                 <nav className="flex flex-1 flex-col px-3 py-2">
                     {/* Dashboard */}
                     <div className="space-y-0.5">
-                        {renderNavGroup(mainNav, pathname, hasPermission)}
+                        {renderNavGroup(mainNav, pathname, hasPermission, hasFeature)}
                     </div>
 
                     {/* Clinical */}
@@ -118,7 +130,7 @@ export function Sidebar() {
                         <p className="px-3 text-[10px] font-bold uppercase tracking-[0.15em] text-[#A0978D]">Clinical</p>
                     </div>
                     <div className="space-y-0.5">
-                        {renderNavGroup(clinicalNav, pathname, hasPermission)}
+                        {renderNavGroup(clinicalNav, pathname, hasPermission, hasFeature)}
                     </div>
 
                     {/* Operations */}
@@ -126,7 +138,7 @@ export function Sidebar() {
                         <p className="px-3 text-[10px] font-bold uppercase tracking-[0.15em] text-[#A0978D]">Operations</p>
                     </div>
                     <div className="space-y-0.5">
-                        {renderNavGroup(operationsNav, pathname, hasPermission)}
+                        {renderNavGroup(operationsNav, pathname, hasPermission, hasFeature)}
                     </div>
 
                     {/* Admin */}
@@ -134,7 +146,7 @@ export function Sidebar() {
                         <p className="px-3 text-[10px] font-bold uppercase tracking-[0.15em] text-[#A0978D]">Admin</p>
                     </div>
                     <div className="space-y-0.5">
-                        {renderNavGroup(adminNav, pathname, hasPermission)}
+                        {renderNavGroup(adminNav, pathname, hasPermission, hasFeature)}
                     </div>
                 </nav>
 

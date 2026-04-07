@@ -167,7 +167,11 @@ REST_FRAMEWORK = {
     ),
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
-    ]
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': '500/day',
+        'public_booking': '10/hour',
+    },
 }
 
 from datetime import timedelta
