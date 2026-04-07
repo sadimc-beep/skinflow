@@ -5,7 +5,7 @@ from masters.models import ProcedureType
 
 class Invoice(TimeStampedModel):
     organization = models.ForeignKey(Organization, on_delete=models.CASCADE, related_name='invoices')
-    patient = models.ForeignKey(Patient, on_delete=models.CASCADE, related_name='invoices')
+    patient = models.ForeignKey(Patient, on_delete=models.SET_NULL, null=True, blank=True, related_name='invoices')
     appointment = models.ForeignKey('clinical.Appointment', null=True, blank=True, on_delete=models.SET_NULL, related_name='invoices')
 
     
@@ -55,7 +55,7 @@ class InvoiceItem(TimeStampedModel):
 
 class Payment(TimeStampedModel):
     organization = models.ForeignKey(Organization, on_delete=models.CASCADE)
-    invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE, related_name='payments')
+    invoice = models.ForeignKey(Invoice, on_delete=models.SET_NULL, null=True, blank=True, related_name='payments')
     
     class Method(models.TextChoices):
         CASH = 'CASH', 'Cash'
@@ -80,7 +80,7 @@ class Payment(TimeStampedModel):
 
 class Entitlement(TimeStampedModel):
     organization = models.ForeignKey(Organization, on_delete=models.CASCADE, related_name='entitlements')
-    patient = models.ForeignKey(Patient, on_delete=models.CASCADE, related_name='entitlements')
+    patient = models.ForeignKey(Patient, on_delete=models.SET_NULL, null=True, blank=True, related_name='entitlements')
     invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE, related_name='entitlements')
     invoice_item = models.OneToOneField(InvoiceItem, on_delete=models.CASCADE, related_name='entitlement')
     

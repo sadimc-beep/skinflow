@@ -9,8 +9,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'django-insecure-development-key-replace-in-production')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-# DJANGO_DEBUG defaults to True for local development.
-DEBUG = os.getenv('DJANGO_DEBUG', 'True').lower() == 'true'
+# DJANGO_DEBUG must be explicitly set to 'True' in development; defaults to False for production safety.
+DEBUG = os.getenv('DJANGO_DEBUG', 'False').lower() == 'true'
 
 # Comma-separated hostnames, e.g. "localhost,127.0.0.1,api.example.com"
 _allowed_hosts = os.getenv('DJANGO_ALLOWED_HOSTS', '*')
@@ -171,6 +171,7 @@ REST_FRAMEWORK = {
     'DEFAULT_THROTTLE_RATES': {
         'anon': '500/day',
         'public_booking': '10/hour',
+        'public_lookup': '20/hour',
     },
 }
 

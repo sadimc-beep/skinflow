@@ -5,8 +5,8 @@ from masters.models import ProcedureType, ProcedureRoom, MedicineMaster, LabTest
 
 class Appointment(TimeStampedModel):
     organization = models.ForeignKey(Organization, on_delete=models.CASCADE, related_name='appointments')
-    patient = models.ForeignKey(Patient, on_delete=models.CASCADE, related_name='appointments')
-    provider = models.ForeignKey(Provider, on_delete=models.CASCADE, related_name='appointments')
+    patient = models.ForeignKey(Patient, on_delete=models.SET_NULL, null=True, blank=True, related_name='appointments')
+    provider = models.ForeignKey(Provider, on_delete=models.SET_NULL, null=True, blank=True, related_name='appointments')
     date_time = models.DateTimeField()
     
     class Status(models.TextChoices):
@@ -20,6 +20,9 @@ class Appointment(TimeStampedModel):
         
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.SCHEDULED)
     fee = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+
+    class Meta:
+        unique_together = [['organization', 'provider', 'date_time']]
 
 class ClinicalIntake(TimeStampedModel):
     organization = models.ForeignKey(Organization, on_delete=models.CASCADE, related_name='clinical_intakes')
@@ -46,8 +49,8 @@ class PatientMedicalHistory(TimeStampedModel):
 
 class Consultation(TimeStampedModel):
     organization = models.ForeignKey(Organization, on_delete=models.CASCADE, related_name='consultations')
-    patient = models.ForeignKey(Patient, on_delete=models.CASCADE, related_name='consultations')
-    provider = models.ForeignKey(Provider, on_delete=models.CASCADE, related_name='consultations')
+    patient = models.ForeignKey(Patient, on_delete=models.SET_NULL, null=True, blank=True, related_name='consultations')
+    provider = models.ForeignKey(Provider, on_delete=models.SET_NULL, null=True, blank=True, related_name='consultations')
     appointment = models.OneToOneField(Appointment, on_delete=models.SET_NULL, null=True, blank=True, related_name='consultation')
     
     class Status(models.TextChoices):

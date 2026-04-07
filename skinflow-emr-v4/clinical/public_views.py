@@ -21,6 +21,11 @@ class PublicBookingThrottle(AnonRateThrottle):
     scope = 'public_booking'
 
 
+class PublicLookupThrottle(AnonRateThrottle):
+    """20 patient lookup attempts per IP per hour."""
+    scope = 'public_lookup'
+
+
 class _PublicBase(APIView):
     permission_classes = [permissions.AllowAny]
     authentication_classes = []
@@ -140,6 +145,8 @@ class PublicSlotsView(_PublicBase):
 # ─── POST /api/public/<slug>/lookup-patient/ ──────────────────────────────────
 
 class PublicLookupPatientView(_PublicBase):
+    throttle_classes = [PublicLookupThrottle]
+
     def post(self, request, slug):
         org = self._get_org(slug)
         phone = request.data.get('phone', '').strip()
@@ -196,36 +203,40 @@ class PublicBookView(_PublicBase):
 
         provider = get_object_or_404(Provider, id=provider_id, organization=org)
 
-        # Guard: slot must still be open
-        slot_taken = (
-            Appointment.objects.filter(
+        # Guard: slot must still be open — use select_for_update to prevent
+        # concurrent requests from booking the same slot simultaneously.
+        from django.db import transaction
+        with transaction.atomic():
+            slot_taken = (
+                Appointment.objects.select_for_update()
+                .filter(
+                    organization=org,
+                    provider=provider,
+                    date_time=dt,
+                )
+                .exclude(status=Appointment.Status.CANCELLED)
+                .exists()
+            )
+            if slot_taken:
+                return Response(
+                    {'detail': 'This slot is no longer available. Please choose another time.'},
+                    status=status.HTTP_409_CONFLICT,
+                )
+
+            # Find or create patient (phone is the key)
+            patient, _ = Patient.objects.get_or_create(
                 organization=org,
+                phone_primary=phone,
+                defaults={'first_name': first_name, 'last_name': last_name},
+            )
+
+            appointment = Appointment.objects.create(
+                organization=org,
+                patient=patient,
                 provider=provider,
                 date_time=dt,
+                status=Appointment.Status.SCHEDULED,
             )
-            .exclude(status=Appointment.Status.CANCELLED)
-            .exists()
-        )
-        if slot_taken:
-            return Response(
-                {'detail': 'This slot is no longer available. Please choose another time.'},
-                status=status.HTTP_409_CONFLICT,
-            )
-
-        # Find or create patient (phone is the key)
-        patient, _ = Patient.objects.get_or_create(
-            organization=org,
-            phone_primary=phone,
-            defaults={'first_name': first_name, 'last_name': last_name},
-        )
-
-        appointment = Appointment.objects.create(
-            organization=org,
-            patient=patient,
-            provider=provider,
-            date_time=dt,
-            status=Appointment.Status.SCHEDULED,
-        )
 
         return Response(
             {
