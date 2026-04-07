@@ -1,0 +1,132 @@
+from rest_framework import viewsets, permissions, status
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from django.utils.decorators import method_decorator
+
+from .models import Invoice, InvoiceItem, Payment, Entitlement
+from .serializers import InvoiceSerializer, InvoiceItemSerializer, PaymentSerializer, EntitlementSerializer
+from .services import (
+    generate_invoice_from_consultation, 
+    generate_new_invoice_from_consultation_selection,
+    check_payment_completes_invoice
+)
+from accounting.services import AccountingService
+from core.api_auth import get_current_org
+from core.permissions import HasRolePermission
+from patients.views import StandardResultsSetPagination
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import filters
+
+class BillingBaseViewSet(viewsets.ModelViewSet):
+    permission_classes = [HasRolePermission]
+    permission_module = 'billing'
+    pagination_class = StandardResultsSetPagination
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+
+    def get_queryset(self):
+        org = get_current_org(self.request)
+        return self.queryset.filter(organization=org)
+
+    def perform_create(self, serializer):
+        org = get_current_org(self.request)
+        serializer.save(organization=org)
+
+class InvoiceViewSet(BillingBaseViewSet):
+    queryset = Invoice.objects.all().select_related('patient').prefetch_related('items')
+    serializer_class = InvoiceSerializer
+    filterset_fields = ['patient', 'status']
+    
+    @action(detail=False, methods=['post'], url_path='generate-from-consultation')
+    def generate_full(self, request):
+        consultation_id = request.data.get('consultation_id')
+        if not consultation_id:
+            return Response({'error': 'consultation_id is required'}, status=status.HTTP_400_BAD_REQUEST)
+            
+        try:
+            invoice = generate_invoice_from_consultation(consultation_id)
+            serializer = self.get_serializer(invoice)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        except ValueError as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=False, methods=['post'], url_path='generate-partial')
+    def generate_partial(self, request):
+        consultation_id = request.data.get('consultation_id')
+        proc_ids = request.data.get('procedure_ids', [])
+        prod_ids = request.data.get('product_ids', [])
+
+        try:
+            invoice = generate_new_invoice_from_consultation_selection(consultation_id, proc_ids, prod_ids)
+            serializer = self.get_serializer(invoice)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        except ValueError as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=['get'])
+    def pdf(self, request, pk=None):
+        from django.template.loader import render_to_string
+        from django.http import HttpResponse
+        from django.utils.timezone import now
+        import weasyprint
+
+        invoice = self.get_object()
+        org = invoice.organization
+
+        context = {
+            'invoice': invoice,
+            'clinic': org,
+            'date': now().strftime('%d %b %Y'),
+        }
+
+        html_string = render_to_string('billing/invoice.html', context, request=request)
+        pdf_bytes = weasyprint.HTML(string=html_string, base_url=request.build_absolute_uri('/')).write_pdf()
+
+        filename = f"invoice_{invoice.id}_{now().strftime('%Y%m%d')}.pdf"
+        response = HttpResponse(pdf_bytes, content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        return response
+
+class InvoiceItemViewSet(BillingBaseViewSet):
+    queryset = InvoiceItem.objects.all().select_related('invoice__patient')
+    serializer_class = InvoiceItemSerializer
+    filterset_fields = ['invoice', 'is_fulfilled', 'reference_model']
+    
+    @action(detail=True, methods=['post'])
+    def mark_fulfilled(self, request, pk=None):
+        item = self.get_object()
+        
+        if item.is_fulfilled:
+            return Response({'error': 'Item is already fulfilled'}, status=status.HTTP_400_BAD_REQUEST)
+            
+        from django.utils import timezone
+        item.is_fulfilled = True
+        item.fulfilled_at = timezone.now()
+        item.save()
+        
+        return Response({'status': 'fulfilled', 'fulfilled_at': item.fulfilled_at})
+
+class PaymentViewSet(BillingBaseViewSet):
+    queryset = Payment.objects.all()
+    serializer_class = PaymentSerializer
+    
+    def perform_create(self, serializer):
+        # Allow passing invoice ID, ensuring the invoice is in the same tenant
+        org = get_current_org(self.request)
+        payment = serializer.save(organization=org)
+        
+        # [ACCOUNTING HOOK] Record the payment receipt (Cash/CC/Check vs A/R)
+        if payment.status == Payment.Status.COMPLETED:
+            AccountingService.post_patient_payment(payment)
+            check_payment_completes_invoice(payment)
+
+class EntitlementViewSet(BillingBaseViewSet):
+    queryset = Entitlement.objects.all().select_related('patient', 'procedure_type')
+    serializer_class = EntitlementSerializer
+    
+    def get_queryset(self):
+        # Filter mostly active ones
+        qs = super().get_queryset()
+        patient_id = self.request.query_params.get('patient', None)
+        if patient_id:
+            qs = qs.filter(patient_id=patient_id)
+        return qs

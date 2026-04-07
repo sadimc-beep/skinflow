@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>Prescription — {{ consultation.id }}</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 18mm 20mm 20mm 20mm;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: "DejaVu Sans", Arial, sans-serif;
+            font-size: 10.5pt;
+            color: #1C1917;
+            line-height: 1.5;
+        }
+
+        /* ── Header ─────────────────────────────────────── */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #C4A882;
+            margin-bottom: 14px;
+        }
+        .clinic-name {
+            font-size: 18pt;
+            font-weight: 700;
+            color: #1C1917;
+            letter-spacing: -0.5px;
+        }
+        .clinic-meta {
+            font-size: 9pt;
+            color: #78706A;
+            margin-top: 3px;
+        }
+        .doc-label {
+            text-align: right;
+        }
+        .doc-label .rx-title {
+            font-size: 22pt;
+            font-weight: 700;
+            color: #C4A882;
+        }
+        .doc-label .doc-date {
+            font-size: 9pt;
+            color: #78706A;
+            margin-top: 2px;
+        }
+
+        /* ── Patient + Doctor row ───────────────────────── */
+        .meta-row {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 14px;
+        }
+        .meta-box {
+            flex: 1;
+            background: #F7F3ED;
+            border-radius: 6px;
+            padding: 8px 12px;
+        }
+        .meta-box .label {
+            font-size: 8pt;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #A0978D;
+            margin-bottom: 3px;
+        }
+        .meta-box .value {
+            font-size: 10pt;
+            font-weight: 600;
+            color: #1C1917;
+        }
+        .meta-box .sub {
+            font-size: 9pt;
+            color: #78706A;
+        }
+
+        /* ── Chief Complaint & HPI ──────────────────────── */
+        .section {
+            margin-bottom: 14px;
+        }
+        .section-title {
+            font-size: 9pt;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            color: #C4A882;
+            font-weight: 700;
+            border-bottom: 1px solid #E8E1D6;
+            padding-bottom: 3px;
+            margin-bottom: 7px;
+        }
+        .section-body {
+            font-size: 10pt;
+            color: #3E3832;
+        }
+
+        /* ── Tables ─────────────────────────────────────── */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 9.5pt;
+        }
+        thead tr {
+            background: #EDE7DC;
+        }
+        thead th {
+            padding: 5px 8px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 8.5pt;
+            color: #3E3832;
+        }
+        tbody tr {
+            border-bottom: 1px solid #F0EBE3;
+        }
+        tbody tr:last-child {
+            border-bottom: none;
+        }
+        tbody td {
+            padding: 5px 8px;
+            color: #3E3832;
+            vertical-align: top;
+        }
+        tbody tr:nth-child(even) td {
+            background: #FAFAF8;
+        }
+
+        /* ── Empty state ────────────────────────────────── */
+        .empty {
+            font-size: 9pt;
+            color: #A0978D;
+            font-style: italic;
+            padding: 4px 0;
+        }
+
+        /* ── Footer ─────────────────────────────────────── */
+        .footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            border-top: 1px solid #E8E1D6;
+            padding: 6px 20mm;
+            font-size: 8pt;
+            color: #A0978D;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        /* ── Signature line ─────────────────────────────── */
+        .sig-block {
+            margin-top: 30px;
+            text-align: right;
+        }
+        .sig-line {
+            display: inline-block;
+            width: 160px;
+            border-top: 1px solid #3E3832;
+            margin-bottom: 3px;
+        }
+        .sig-name {
+            font-size: 9.5pt;
+            font-weight: 600;
+        }
+        .sig-sub {
+            font-size: 8.5pt;
+            color: #78706A;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header -->
+    <div class="header">
+        <div>
+            <div class="clinic-name">{{ clinic.name }}</div>
+            <div class="clinic-meta">
+                {% if clinic.address %}{{ clinic.address }}{% endif %}
+                {% if clinic.phone %} &nbsp;|&nbsp; {{ clinic.phone }}{% endif %}
+            </div>
+        </div>
+        <div class="doc-label">
+            <div class="rx-title">Rx</div>
+            <div class="doc-date">{{ date }}</div>
+        </div>
+    </div>
+
+    <!-- Patient + Doctor -->
+    <div class="meta-row">
+        <div class="meta-box">
+            <div class="label">Patient</div>
+            <div class="value">{{ consultation.patient.first_name }} {{ consultation.patient.last_name }}</div>
+            <div class="sub">
+                {% if consultation.patient.date_of_birth %}DOB: {{ consultation.patient.date_of_birth }}&nbsp;&nbsp;{% endif %}
+                {% if consultation.patient.phone_primary %}{{ consultation.patient.phone_primary }}{% endif %}
+            </div>
+        </div>
+        <div class="meta-box">
+            <div class="label">Prescribing Doctor</div>
+            <div class="value">{{ consultation.provider.user.get_full_name }}</div>
+            <div class="sub">{{ consultation.provider.get_provider_type_display }}</div>
+        </div>
+        <div class="meta-box">
+            <div class="label">Consultation Ref</div>
+            <div class="value">#{{ consultation.id }}</div>
+            <div class="sub">{{ consultation.created_at|date:"d M Y" }}</div>
+        </div>
+    </div>
+
+    <!-- Chief Complaint -->
+    {% if consultation.chief_complaint %}
+    <div class="section">
+        <div class="section-title">Chief Complaint</div>
+        <div class="section-body">{{ consultation.chief_complaint }}</div>
+    </div>
+    {% endif %}
+
+    <!-- Diagnosis -->
+    {% if consultation.diagnoses.exists %}
+    <div class="section">
+        <div class="section-title">Diagnosis</div>
+        <div class="section-body">
+            {% for d in consultation.diagnoses.all %}{{ d.diagnosis }}{% if not forloop.last %}, {% endif %}{% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Medications -->
+    <div class="section">
+        <div class="section-title">Medications</div>
+        {% if prescription and prescription.medications.exists %}
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Medicine</th>
+                    <th>Dose / Route</th>
+                    <th>Frequency</th>
+                    <th>Duration</th>
+                    <th>Instructions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for med in prescription.medications.all %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>{{ med.medicine.name }}</td>
+                    <td>{{ med.dose }}{% if med.route %} / {{ med.route }}{% endif %}</td>
+                    <td>{{ med.frequency }}</td>
+                    <td>{{ med.duration }}</td>
+                    <td>{{ med.instructions|default:"—" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="empty">No medications prescribed.</div>
+        {% endif %}
+    </div>
+
+    <!-- Lab Tests -->
+    {% if prescription and prescription.lab_tests.exists %}
+    <div class="section">
+        <div class="section-title">Lab Tests Ordered</div>
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Test</th>
+                    <th>Instructions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for lt in prescription.lab_tests.all %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>{{ lt.lab_test.name }}</td>
+                    <td>{{ lt.instructions|default:"—" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+    <!-- Procedures -->
+    {% if prescription and prescription.procedures.exists %}
+    <div class="section">
+        <div class="section-title">Procedures / Treatment Plan</div>
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Procedure</th>
+                    <th>Sessions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for proc in prescription.procedures.all %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>{{ proc.procedure_type.name }}</td>
+                    <td>{{ proc.sessions_planned }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+    <!-- Products -->
+    {% if prescription and prescription.products.exists %}
+    <div class="section">
+        <div class="section-title">Recommended Products</div>
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Product</th>
+                    <th>Qty</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for prod in prescription.products.all %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>{{ prod.product_name }}</td>
+                    <td>{{ prod.quantity }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+    <!-- Signature -->
+    <div class="sig-block">
+        <div class="sig-line"></div><br>
+        <div class="sig-name">{{ consultation.provider.user.get_full_name }}</div>
+        <div class="sig-sub">{{ consultation.provider.get_provider_type_display }}</div>
+        <div class="sig-sub">{{ clinic.name }}</div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+        <span>{{ clinic.name }}{% if clinic.phone %} &nbsp;|&nbsp; {{ clinic.phone }}{% endif %}</span>
+        <span>Prescription #{{ consultation.id }} &nbsp;|&nbsp; Printed: {{ date }}</span>
+    </div>
+
+</body>
+</html>

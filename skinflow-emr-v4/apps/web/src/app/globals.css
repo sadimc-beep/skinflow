@@ -1,0 +1,174 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-plus-jakarta), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-dm-serif), Georgia, 'Times New Roman', serif;
+  --font-mono: var(--font-geist-mono);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+}
+
+:root {
+  --radius: 1rem;
+
+  /* ── Radiant warm cream palette ── */
+  --background: #EDE7DC;
+  /* Warm linen — the signature background */
+  --foreground: #1C1917;
+  /* Warm near-black */
+
+  --card: #F7F3ED;
+  /* Lighter cream for inner surfaces */
+  --card-foreground: #1C1917;
+
+  --popover: #F7F3ED;
+  --popover-foreground: #1C1917;
+
+  --primary: #1C1917;
+  /* Warm charcoal — buttons, active items */
+  --primary-foreground: #F7F3ED;
+
+  --secondary: #E5DDD3;
+  /* Slightly deeper cream for secondary surfaces */
+  --secondary-foreground: #1C1917;
+
+  --muted: #E8E1D6;
+  /* Warm muted */
+  --muted-foreground: #78706A;
+  /* Warm taupe for supporting text */
+
+  --accent: #C4A882;
+  /* Champagne gold accent */
+  --accent-foreground: #1C1917;
+
+  --destructive: #B04030;
+  --destructive-foreground: #F7F3ED;
+
+  --border: #D9D0C5;
+  /* Warm hairline border */
+  --input: #E5DDD3;
+  --ring: #C4A882;
+  /* Gold focus ring */
+
+  --chart-1: #1C1917;
+  --chart-2: #C4A882;
+  --chart-3: #7A9E8A;
+  --chart-4: #C4705A;
+  --chart-5: #8A7A6A;
+
+  /* Sidebar — same warm cream, dissolves into background */
+  --sidebar: #E8E1D6;
+  --sidebar-foreground: #1C1917;
+  --sidebar-primary: #1C1917;
+  --sidebar-primary-foreground: #F7F3ED;
+  --sidebar-accent: #DDD5C9;
+  --sidebar-accent-foreground: #1C1917;
+  --sidebar-border: #D9D0C5;
+  --sidebar-ring: #C4A882;
+}
+
+.dark {
+  --background: #1C1917;
+  --foreground: #F7F3ED;
+  --card: #252118;
+  --card-foreground: #F7F3ED;
+  --popover: #252118;
+  --popover-foreground: #F7F3ED;
+  --primary: #F7F3ED;
+  --primary-foreground: #1C1917;
+  --secondary: #2E2A25;
+  --secondary-foreground: #F7F3ED;
+  --muted: #2E2A25;
+  --muted-foreground: #A09880;
+  --accent: #C4A882;
+  --accent-foreground: #1C1917;
+  --destructive: #C04030;
+  --border: #2E2A25;
+  --input: #2E2A25;
+  --ring: #C4A882;
+  --sidebar: #201E1B;
+  --sidebar-foreground: #F7F3ED;
+  --sidebar-primary: #F7F3ED;
+  --sidebar-primary-foreground: #1C1917;
+  --sidebar-accent: #2E2A25;
+  --sidebar-accent-foreground: #F7F3ED;
+  --sidebar-border: #2E2A25;
+  --sidebar-ring: #C4A882;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Editorial serif utility */
+.font-display {
+  font-family: var(--font-dm-serif), Georgia, serif;
+}
+
+/* Tabular number rendering for stats */
+.stat-number {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.03em;
+}
+
+/* Scrollbar hidden */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Image card overlay gradient — dark bottom scrim */
+.card-scrim {
+  background: linear-gradient(to bottom,
+      rgba(28, 25, 23, 0) 0%,
+      rgba(28, 25, 23, 0.3) 45%,
+      rgba(28, 25, 23, 0.82) 100%);
+}

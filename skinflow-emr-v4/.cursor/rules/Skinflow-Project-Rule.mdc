@@ -1,0 +1,10 @@
+---
+alwaysApply: true
+---
+
+This is a production web SaaS app called Skinflow EMR
+Do not rewrite architecture without approval.
+Do not touch unrelated modules.
+Always analyze first, list affected files, and propose a plan before editing.
+Prefer small diffs.
+Preserve current UI theme and existing working flows.
