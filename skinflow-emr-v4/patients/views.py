@@ -41,13 +41,37 @@ class PatientViewSet(viewsets.ModelViewSet):
         
     def perform_destroy(self, instance):
         """
-        Basic delete protection: In reality, we must check if they have invoices/appointments.
-        For now, this raises a validation error if we detect relations (Django will normally just CASCADE if we aren't careful, so we should override or use Protect in models).
-        Since models.py for related items use CASCADE by default in our scaffolding, we add basic manual check here.
+        Delete protection: block deletion if any linked records exist.
+        Checks all relations that carry clinical or financial history.
         """
-        if instance.appointments.exists() or instance.consultations.exists() or hasattr(instance, 'invoices') and instance.invoices.exists():
-            from rest_framework.exceptions import ValidationError
-            raise ValidationError("Cannot delete patient with linked clinical or financial records.")
+        from rest_framework.exceptions import ValidationError
+
+        blocked = []
+
+        if instance.appointments.exists():
+            blocked.append('appointments')
+        if instance.consultations.exists():
+            blocked.append('consultations')
+        if instance.invoices.exists():
+            blocked.append('invoices')
+        if instance.entitlements.exists():
+            blocked.append('entitlements')
+        if instance.allergies.exists():
+            blocked.append('allergies')
+        if instance.medical_history.exists():
+            blocked.append('medical history records')
+        if instance.clinical_notes.exists():
+            blocked.append('clinical notes')
+        if instance.photos.exists():
+            blocked.append('photos')
+        if instance.consentform_set.exists():
+            blocked.append('consent forms')
+
+        if blocked:
+            raise ValidationError(
+                f"Cannot delete patient. The following records must be removed first: "
+                f"{', '.join(blocked)}."
+            )
 
         instance.delete()
 

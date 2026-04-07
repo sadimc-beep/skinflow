@@ -46,23 +46,31 @@ class AppointmentViewSet(ClinicalBaseViewSet):
     def check_in(self, request, pk=None):
         appointment = self.get_object()
         fee = request.data.get('fee', 0)
-        
-        if appointment.status != Appointment.Status.SCHEDULED:
-            return Response({'error': 'Only scheduled appointments can be checked in'}, status=status.HTTP_400_BAD_REQUEST)
-            
-        appointment.status = Appointment.Status.ARRIVED
-        appointment.fee = fee
-        appointment.save()
 
+        if appointment.status != Appointment.Status.SCHEDULED:
+            return Response(
+                {'error': 'Only scheduled appointments can be checked in.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Validate fee before mutating appointment state
         try:
             fee_amount = float(fee)
-            if fee_amount > 0:
-                from billing.services import process_appointment_checkin_fee
-                invoice = process_appointment_checkin_fee(appointment.id, fee_amount)
-                return Response({'status': 'arrived', 'invoice_id': invoice.id})
-        except ValueError:
-            pass
-            
+        except (ValueError, TypeError):
+            return Response(
+                {'error': f'Invalid fee value: "{fee}". Must be a number.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        appointment.status = Appointment.Status.ARRIVED
+        appointment.fee = fee_amount
+        appointment.save()
+
+        if fee_amount > 0:
+            from billing.services import process_appointment_checkin_fee
+            invoice = process_appointment_checkin_fee(appointment.id, fee_amount)
+            return Response({'status': 'arrived', 'invoice_id': invoice.id})
+
         return Response({'status': 'arrived'})
 
 class ConsultationViewSet(ClinicalBaseViewSet):

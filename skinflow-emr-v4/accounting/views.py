@@ -344,6 +344,14 @@ class JournalEntryViewSet(AccountingBaseViewSet):
     def get_queryset(self):
         return super().get_queryset().order_by('-date', '-created_at')
 
+    def perform_destroy(self, instance):
+        if instance.status == 'POSTED':
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied(
+                "Posted journal entries cannot be deleted. Create a reversing entry instead."
+            )
+        instance.delete()
+
     @transaction.atomic
     def perform_create(self, serializer):
         from .models import JournalEntryLine, AccountingSettings

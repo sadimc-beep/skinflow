@@ -223,11 +223,22 @@ class PublicBookView(_PublicBase):
                     status=status.HTTP_409_CONFLICT,
                 )
 
-            # Find or create patient (phone is the key)
-            patient, _ = Patient.objects.get_or_create(
+            # Find or create patient (phone is the key).
+            # If an existing record is found, never overwrite the stored name —
+            # the submitted name is only used when creating a brand-new record.
+            patient, created = Patient.objects.get_or_create(
                 organization=org,
                 phone_primary=phone,
                 defaults={'first_name': first_name, 'last_name': last_name},
+            )
+            # Track whether the submitted name differed from the stored one so
+            # the response can inform the caller their name was not changed.
+            name_mismatch = (
+                not created
+                and (
+                    patient.first_name.lower() != first_name.lower()
+                    or patient.last_name.lower() != (last_name or '').lower()
+                )
             )
 
             appointment = Appointment.objects.create(
@@ -238,16 +249,19 @@ class PublicBookView(_PublicBase):
                 status=Appointment.Status.SCHEDULED,
             )
 
-        return Response(
-            {
-                'appointment_id': appointment.id,
-                'reference': f"BK-{appointment.id:06d}",
-                'provider_name': provider.user.get_full_name() or provider.user.username,
-                'date_time': dt.isoformat(),
-                'patient_name': f"{patient.first_name} {patient.last_name}".strip(),
-                'clinic_name': org.name,
-                'clinic_phone': org.phone,
-                'clinic_address': org.address,
-            },
-            status=status.HTTP_201_CREATED,
-        )
+        response_data = {
+            'appointment_id': appointment.id,
+            'reference': f"BK-{appointment.id:06d}",
+            'provider_name': provider.user.get_full_name() or provider.user.username,
+            'date_time': dt.isoformat(),
+            'patient_name': f"{patient.first_name} {patient.last_name}".strip(),
+            'clinic_name': org.name,
+            'clinic_phone': org.phone,
+            'clinic_address': org.address,
+        }
+        if name_mismatch:
+            response_data['notice'] = (
+                "This phone number is already registered. "
+                "Your booking was made under the existing name on file."
+            )
+        return Response(response_data, status=status.HTTP_201_CREATED)
