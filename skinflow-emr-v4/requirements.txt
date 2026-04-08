@@ -8,4 +8,6 @@ Pillow
 django-storages[s3]
 boto3
 weasyprint
+psycopg2-binary
+python-dotenv
 

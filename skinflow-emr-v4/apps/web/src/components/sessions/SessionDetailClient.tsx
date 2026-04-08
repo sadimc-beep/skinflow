@@ -7,15 +7,16 @@ import { clinicalApi } from '@/lib/services/clinical';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Play, CheckCircle, FileText, Camera, Upload, AlertTriangle, ChevronRight, Lock } from 'lucide-react';
+import { Play, CheckCircle, FileText, Camera, AlertTriangle, ChevronRight, Lock, Images } from 'lucide-react';
 import { toast } from 'sonner';
 import { BotoxForm } from './SpecializedForms/BotoxForm';
 import { FillerForm } from './SpecializedForms/FillerForm';
 import { LHRForm } from './SpecializedForms/LHRForm';
 import { ClinicalRequisitionForm } from './ClinicalRequisitionForm';
 import { ConsentSigningModal } from '@/components/sf/ConsentSigningModal';
+import { CameraCapture } from '@/components/sf/CameraCapture';
+import { MultiAngleCapture } from '@/components/sf/MultiAngleCapture';
 import type { ProcedureSession } from '@/types/models';
 import Link from 'next/link';
 
@@ -39,11 +40,12 @@ export function SessionDetailClient({ initialData }: { initialData: ProcedureSes
     const [showConsentModal, setShowConsentModal] = useState(false);
 
     // Photo states
-    const [photoFile, setPhotoFile] = useState<File | null>(null);
-    const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
     const [clinicalPhotoUrl, setClinicalPhotoUrl] = useState<string | null>(
         (initialData as any).clinical_photo_url ?? null
     );
+    const [showSingleCamera, setShowSingleCamera] = useState(false);
+    const [showMultiCapture, setShowMultiCapture] = useState(false);
+    const [multiCaptureCategory, setMultiCaptureCategory] = useState<'PRE_SESSION' | 'POST_SESSION'>('PRE_SESSION');
 
     const hasConsent = session.consent_form !== null;
     const hasPhoto = session.clinical_photo !== null;
@@ -58,27 +60,29 @@ export function SessionDetailClient({ initialData }: { initialData: ProcedureSes
         router.refresh();
     };
 
-    const handleUploadPhoto = async () => {
-        if (!photoFile) {
-            toast.warning('Please select a photo file.');
-            return;
-        }
-        setIsUploadingPhoto(true);
+    const handleSinglePhotoCapture = async (photoId: number) => {
+        setShowSingleCamera(false);
+        setSession(prev => ({ ...prev, clinical_photo: photoId }));
+        // Fetch the photo URL to pass to the specialized charting forms
         try {
-            const form = new FormData();
-            form.append('photo', photoFile);
-            form.append('category', 'PRE_SESSION');
-            // Use the existing upload_photo action via fetch directly (FormData)
-            const res = await clinicalApi.sessions.uploadPhoto(session.id, photoFile) as { id: number; photo_url: string };
-            setSession(prev => ({ ...prev, clinical_photo: res.id }));
-            setClinicalPhotoUrl(res.photo_url ?? null);
-            toast.success('Clinical photo attached.');
-            router.refresh();
-        } catch (error: unknown) {
-            toast.error(error instanceof Error ? error.message : 'Failed to upload photo.');
-        } finally {
-            setIsUploadingPhoto(false);
+            const photoData = await clinicalApi.photos.get(photoId);
+            setClinicalPhotoUrl(photoData.photo_url ?? null);
+        } catch {
+            // Non-critical — URL is just for display in charting forms
         }
+        toast.success('Clinical photo attached.');
+        router.refresh();
+    };
+
+    const handleMultiCaptureComplete = (photoIds: number[]) => {
+        setShowMultiCapture(false);
+        if (photoIds.length > 0) {
+            setSession(prev => ({ ...prev, clinical_photo: photoIds[photoIds.length - 1] }));
+            toast.success(`${photoIds.length} photo${photoIds.length > 1 ? 's' : ''} captured and attached.`);
+        } else {
+            toast.info('No photos were captured.');
+        }
+        router.refresh();
     };
 
     const handleStartSession = async () => {
@@ -266,16 +270,21 @@ export function SessionDetailClient({ initialData }: { initialData: ProcedureSes
                                 )}
                             </div>
                             {!hasPhoto && session.status === 'PLANNED' && (
-                                <div className="flex gap-2 mt-2">
-                                    <Input
-                                        type="file"
-                                        accept="image/*"
-                                        capture="environment"
-                                        onChange={e => setPhotoFile(e.target.files?.[0] ?? null)}
-                                        className="h-9 text-sm bg-white"
-                                    />
-                                    <Button size="sm" onClick={handleUploadPhoto} disabled={isUploadingPhoto || !photoFile} className="h-9 shrink-0">
-                                        <Upload className="h-4 w-4 mr-2" /> Upload
+                                <div className="flex flex-col gap-2 mt-1">
+                                    <Button
+                                        size="sm"
+                                        className="h-10 self-start"
+                                        onClick={() => setShowSingleCamera(true)}
+                                    >
+                                        <Camera className="h-4 w-4 mr-2" /> Take Photo
+                                    </Button>
+                                    <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="h-10 self-start"
+                                        onClick={() => { setMultiCaptureCategory('PRE_SESSION'); setShowMultiCapture(true); }}
+                                    >
+                                        <Images className="h-4 w-4 mr-2" /> Capture 5-Angle Pre-Session Photos
                                     </Button>
                                 </div>
                             )}
@@ -311,12 +320,53 @@ export function SessionDetailClient({ initialData }: { initialData: ProcedureSes
                 </Card>
             </div>
 
+            {/* Post-Session Photos — shown while session is in progress */}
+            {session.status === 'STARTED' && (
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="text-lg flex items-center gap-2">
+                            <Images className="h-5 w-5" />
+                            Post-Session Photos
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <Button
+                            variant="outline"
+                            onClick={() => { setMultiCaptureCategory('POST_SESSION'); setShowMultiCapture(true); }}
+                        >
+                            <Camera className="h-4 w-4 mr-2" /> Capture 5-Angle Post-Session Photos
+                        </Button>
+                    </CardContent>
+                </Card>
+            )}
+
             {/* Specialized Charting Rendered Below */}
             {renderSpecializedForm()}
 
             {/* In-Session Inventory Requisition */}
             {session.status !== 'PLANNED' && (
                 <ClinicalRequisitionForm sessionId={session.id} readonly={isSessionReadonly} />
+            )}
+
+            {/* ── Camera modals ── */}
+            {showSingleCamera && (
+                <CameraCapture
+                    patientId={session.patient_details?.id ?? 0}
+                    sessionId={session.id}
+                    category="PRE_SESSION"
+                    overlay="face_front"
+                    onCapture={handleSinglePhotoCapture}
+                    onCancel={() => setShowSingleCamera(false)}
+                />
+            )}
+            {showMultiCapture && (
+                <MultiAngleCapture
+                    patientId={session.patient_details?.id ?? 0}
+                    sessionId={session.id}
+                    category={multiCaptureCategory}
+                    onComplete={handleMultiCaptureComplete}
+                    onCancel={() => setShowMultiCapture(false)}
+                />
             )}
 
         </div>

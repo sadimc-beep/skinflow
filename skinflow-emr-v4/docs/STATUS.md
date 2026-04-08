@@ -19,7 +19,7 @@
 | Accounting | Partial | Partial | Core models built, many features TO BUILD (see ACCOUNTING_SPEC.md) |
 | SaaS Platform | Complete | Complete | Superadmin portal |
 | Authentication | Complete | Complete | JWT login |
-| RBAC | Partial | Partial | Roles exist, enforcement needs work |
+| RBAC | Substantially Complete | Substantially Complete | Enforcement in place; granular frontend permission checks remain |
 
 ---
 
@@ -119,8 +119,8 @@
 - Advanced search/filtering APIs
 - Reporting/analytics endpoints
 - Email/SMS notifications
-- File upload handling (photos, documents)
-- Print templates (prescriptions, invoices)
+- ~~File upload handling (photos, documents)~~ **DONE** (Sprint 1)
+- ~~Print templates (prescriptions, invoices)~~ **DONE** (Sprint 2)
 - SSLCommerz payment integration
 - PharmaSeed medicine database sync
 
@@ -128,9 +128,9 @@
 - Pagination UI components
 - Advanced search with filters
 - Reporting dashboard
-- Print layouts
-- File upload for photos
-- Consent form signing UI
+- ~~Print layouts~~ **DONE** (Sprint 2)
+- ~~File upload for photos~~ **DONE** (Sprint 1)
+- ~~Consent form signing UI~~ **DONE** (Sprint 2)
 - Treatment plan creation wizard
 - Bulk operations (batch status updates)
 
@@ -224,7 +224,26 @@ Highest daily value for clinic staff.
 
 ---
 
-*Last reviewed: April 2026*
+*Last reviewed: April 7, 2026*
+
+---
+
+## Pre-Production Review (April 7, 2026)
+
+A full codebase review was conducted prior to production deployment. The following issues were identified and fixed:
+
+### Critical fixes applied
+- **CASCADE → SET_NULL on financial records** (`billing/models.py`): `Invoice.patient`, `Payment.invoice`, `Entitlement.patient` — deleting a patient or invoice no longer wipes financial records
+- **CASCADE → SET_NULL on clinical records** (`clinical/models.py`): `Appointment.patient/provider`, `Consultation.patient/provider` — deleting a provider or patient no longer wipes clinical history
+- **DB-level unique constraint on appointment slots** (`clinical/models.py`): Added `unique_together = [['organization', 'provider', 'date_time']]` to `Appointment.Meta`; `PublicBookView` wrapped in `select_for_update()` + `transaction.atomic()` to prevent race conditions
+- **DEBUG defaults to False** (`skinflow/settings.py`): Changed default from `'True'` to `'False'`; must be explicitly set in dev environments
+
+### Important fixes applied
+- **Patient delete guard** (`patients/views.py`): `perform_destroy()` now checks all 9 reverse relations (appointments, consultations, invoices, entitlements, allergies, medical history, clinical notes, photos, consent forms) and returns a clear error listing blocking record types
+- **Silent fee conversion failure** (`clinical/views.py`): `check_in()` now validates fee *before* mutating appointment status; bad input returns HTTP 400 instead of silently skipping billing
+- **Posted journal entries protected from deletion** (`accounting/views.py`): `JournalEntryViewSet.perform_destroy()` blocks deletion of POSTED entries with HTTP 403
+- **Phone-key name collision on re-booking** (`clinical/public_views.py`): `PublicBookView` no longer silently uses a mismatched name; booking succeeds with the stored name and a `notice` field is included in the response
+- **Public lookup endpoint throttled** (`clinical/public_views.py`, `skinflow/settings.py`): `PublicLookupPatientView` now applies `PublicLookupThrottle` at 20/hour to prevent phone number enumeration
 
 ---
 

@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { PatientEntitlements } from '@/components/patients/PatientEntitlements';
 import { PatientStatsBar } from '@/components/patients/PatientStatsBar';
+import { PatientPhotoSection } from '@/components/patients/PatientPhotoSection';
 import { AppointmentsListClient } from '@/components/appointments/AppointmentsListClient';
 import { ConsultationsListClient } from '@/components/consultations/ConsultationsListClient';
 import { InvoicesListClient } from '@/components/billing/InvoicesListClient';
@@ -125,6 +126,10 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
                 {/* ── OVERVIEW TAB ── */}
                 <TabsContent value="overview" className="mt-4">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+                        {/* Photos section — full width, above demographics */}
+                        <div className="md:col-span-3">
+                            <PatientPhotoSection patientId={patient.id} />
+                        </div>
                         <div className="md:col-span-2 space-y-4">
                             <h3 className="font-display text-2xl text-[#1C1917] tracking-tight">Demographics</h3>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

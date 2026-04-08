@@ -164,7 +164,10 @@ export const clinicalApi = {
     },
 
     photos: {
+        list: (params?: { patient?: number; category?: string; limit?: number }) =>
+            fetchApi<{ count: number; results: Array<{ id: number; photo: string; photo_url: string; category: string; taken_at: string | null; description: string }> }>('clinical/photos', { params }),
+
         get: (id: number | string) =>
-            fetchApi<{ id: number; photo_url: string; photo: string }>(`clinical/clinical-photos/${id}`),
+            fetchApi<{ id: number; photo_url: string; photo: string }>(`clinical/photos/${id}`),
     },
 };
