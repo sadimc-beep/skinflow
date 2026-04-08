@@ -1,20 +1,34 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useParams, useRouter } from 'next/navigation';
 import { billingApi } from '@/lib/services/billing';
 import type { Invoice } from '@/types/models';
 import { InvoiceDetailClient } from '@/components/billing/InvoiceDetailClient';
 
-export const dynamic = 'force-dynamic';
+export default function InvoicePage() {
+    const { id } = useParams<{ id: string }>();
+    const router = useRouter();
+    const [invoice, setInvoice] = useState<Invoice | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [notFound, setNotFound] = useState(false);
 
-export default async function InvoicePage({ params }: { params: Promise<{ id: string }> }) {
-    const { id } = await params;
-    let invoice: Invoice | null = null;
+    useEffect(() => {
+        billingApi.invoices.get(id)
+            .then(setInvoice)
+            .catch(() => setNotFound(true))
+            .finally(() => setIsLoading(false));
+    }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    try {
-        invoice = await billingApi.invoices.get(id);
-    } catch (error) {
-        console.error('Failed to fetch invoice:', error);
+    if (isLoading) {
+        return (
+            <div className="flex items-center justify-center h-64 text-muted-foreground">
+                Loading invoice…
+            </div>
+        );
     }
 
-    if (!invoice) {
+    if (notFound || !invoice) {
         return (
             <div className="flex flex-col items-center justify-center h-64 space-y-4">
                 <h2 className="font-display text-3xl text-[#1C1917] tracking-tight">Invoice Not Found</h2>

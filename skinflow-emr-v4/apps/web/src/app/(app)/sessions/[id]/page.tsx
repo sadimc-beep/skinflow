@@ -1,39 +1,48 @@
-import { notFound } from 'next/navigation';
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useParams, useRouter } from 'next/navigation';
 import { clinicalApi } from '@/lib/services/clinical';
 import { SessionDetailClient } from '@/components/sessions/SessionDetailClient';
 import type { ProcedureSession } from '@/types/models';
 
-export const dynamic = 'force-dynamic';
+export default function SessionDetailPage() {
+    const { id } = useParams<{ id: string }>();
+    const router = useRouter();
+    const [session, setSession] = useState<(ProcedureSession & { clinical_photo_url?: string | null }) | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
 
-export default async function SessionDetailPage({ params }: { params: Promise<{ id: string }> }) {
-    const { id } = await params;
+    useEffect(() => {
+        clinicalApi.sessions.get(id)
+            .then(async (data) => {
+                let clinicalPhotoUrl: string | null = null;
+                if (data.clinical_photo) {
+                    try {
+                        const photo = await clinicalApi.photos.get(data.clinical_photo);
+                        clinicalPhotoUrl = photo.photo_url ?? null;
+                    } catch {
+                        // non-fatal — schematic falls back to SVG drawing
+                    }
+                }
+                setSession({ ...data, clinical_photo_url: clinicalPhotoUrl });
+            })
+            .catch(() => router.replace('/sessions'))
+            .finally(() => setIsLoading(false));
+    }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    try {
-        const session = await clinicalApi.sessions.get(id);
-        if (!session) {
-            return notFound();
-        }
-
-        // Fetch the clinical photo URL so face mapping works on first render
-        let clinicalPhotoUrl: string | null = null;
-        if (session.clinical_photo) {
-            try {
-                const photo = await clinicalApi.photos.get(session.clinical_photo);
-                clinicalPhotoUrl = photo.photo_url ?? null;
-            } catch {
-                // non-fatal — schematic will fall back to SVG drawing
-            }
-        }
-
-        const sessionWithPhoto = { ...session, clinical_photo_url: clinicalPhotoUrl };
-
+    if (isLoading) {
         return (
-            <div className="flex-1 space-y-4 p-8 pt-6">
-                <SessionDetailClient initialData={sessionWithPhoto} />
+            <div className="flex items-center justify-center h-64 text-muted-foreground">
+                Loading session…
             </div>
         );
-    } catch (error) {
-        console.error("Failed to fetch session details:", error);
-        return notFound();
     }
+
+    if (!session) return null;
+
+    return (
+        <div className="flex-1 space-y-4 p-8 pt-6">
+            <SessionDetailClient initialData={session} />
+        </div>
+    );
 }

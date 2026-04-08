@@ -43,7 +43,7 @@ function getStatusBadge(status: string) {
     }
 }
 
-export function InvoicesListClient({ initialData }: { initialData: Invoice[] }) {
+export function InvoicesListClient({ initialData, patientId }: { initialData: Invoice[]; patientId?: number }) {
     const router = useRouter();
     const [invoices, setInvoices] = useState(initialData);
     const [isLoading, setIsLoading] = useState(true);
@@ -51,11 +51,11 @@ export function InvoicesListClient({ initialData }: { initialData: Invoice[] }) 
     const [statusFilter, setStatusFilter] = useState('ALL');
 
     useEffect(() => {
-        billingApi.invoices.list({ limit: 200 })
+        billingApi.invoices.list({ limit: 200, ...(patientId ? { patient: patientId } : {}) })
             .then(res => setInvoices(res.results || []))
             .catch(console.error)
             .finally(() => setIsLoading(false));
-    }, []);
+    }, [patientId]);
 
     const filteredInvoices = invoices.filter(inv => {
         const term = searchTerm.toLowerCase();

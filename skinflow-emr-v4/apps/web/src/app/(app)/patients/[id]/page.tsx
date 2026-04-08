@@ -1,4 +1,7 @@
-import { notFound } from 'next/navigation';
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { patientsApi } from '@/lib/services/patients';
 import { appointmentsApi } from '@/lib/services/appointments';
@@ -18,44 +21,55 @@ import { PatientPhotoSection } from '@/components/patients/PatientPhotoSection';
 import { AppointmentsListClient } from '@/components/appointments/AppointmentsListClient';
 import { ConsultationsListClient } from '@/components/consultations/ConsultationsListClient';
 import { InvoicesListClient } from '@/components/billing/InvoicesListClient';
+import type { Patient, Appointment, Consultation, Invoice } from '@/types/models';
 
-export const dynamic = 'force-dynamic';
+export default function PatientDetailPage() {
+    const { id } = useParams<{ id: string }>();
+    const router = useRouter();
+    const patientId = parseInt(id);
 
-export default async function PatientDetailPage({ params }: { params: Promise<{ id: string }> }) {
-    const resolvedParams = await params;
-    const patientId = parseInt(resolvedParams.id);
+    const [patient, setPatient] = useState<Patient | null>(null);
+    const [appointments, setAppointments] = useState<Appointment[]>([]);
+    const [consultations, setConsultations] = useState<Consultation[]>([]);
+    const [invoices, setInvoices] = useState<Invoice[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
 
-    let patient;
-    try {
-        patient = await patientsApi.get(resolvedParams.id);
-    } catch {
-        notFound();
+    useEffect(() => {
+        patientsApi.get(id)
+            .then(async (p) => {
+                setPatient(p);
+                // Fetch tab data in parallel once patient is confirmed to exist
+                const [apptRes, consultRes, invRes] = await Promise.allSettled([
+                    appointmentsApi.list({ patient: patientId } as any),
+                    clinicalApi.consultations.list({ patient: patientId }),
+                    billingApi.invoices.list({ patient: patientId }),
+                ]);
+                if (apptRes.status === 'fulfilled') setAppointments(apptRes.value.results || []);
+                if (consultRes.status === 'fulfilled') setConsultations(consultRes.value.results || []);
+                if (invRes.status === 'fulfilled') setInvoices(invRes.value.results || []);
+            })
+            .catch(() => router.replace('/patients'))
+            .finally(() => setIsLoading(false));
+    }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    if (isLoading) {
+        return (
+            <div className="flex items-center justify-center h-64 text-muted-foreground">
+                Loading patient…
+            </div>
+        );
     }
 
-    // Fetch per-patient data in parallel for the tabs
-    const [appointmentsRes, consultationsRes, invoicesRes] = await Promise.allSettled([
-        appointmentsApi.list({ patient: patientId } as any),
-        clinicalApi.consultations.list({ patient: patientId }),
-        billingApi.invoices.list({ patient: patientId }),
-    ]);
-
-    const appointments = appointmentsRes.status === 'fulfilled' ? (appointmentsRes.value.results || []) : [];
-    const consultations = consultationsRes.status === 'fulfilled' ? (consultationsRes.value.results || []) : [];
-    const invoices = invoicesRes.status === 'fulfilled' ? (invoicesRes.value.results || []) : [];
+    if (!patient) return null; // router.replace already in flight
 
     // Derive stats
     const outstandingBalance = invoices.reduce((sum, inv) => sum + parseFloat(inv.balance_due || '0'), 0);
     const lifetimeSpend = invoices.reduce((sum, inv) => sum + parseFloat(inv.total || '0'), 0);
     const lastVisitDate = appointments.length > 0
-        ? appointments.sort((a, b) => new Date(b.date_time).getTime() - new Date(a.date_time).getTime())[0]?.date_time ?? null
+        ? [...appointments].sort((a, b) => new Date(b.date_time).getTime() - new Date(a.date_time).getTime())[0]?.date_time ?? null
         : null;
 
-    const stats = {
-        totalAppointments: appointments.length,
-        outstandingBalance,
-        lifetimeSpend,
-        lastVisitDate,
-    };
+    const stats = { totalAppointments: appointments.length, outstandingBalance, lifetimeSpend, lastVisitDate };
 
     return (
         <div className="space-y-5">
@@ -63,7 +77,6 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
             <div className="flex items-start justify-between gap-4 flex-wrap">
                 <div className="flex items-center gap-5">
                     <div className="flex-shrink-0 h-24 w-24 rounded-full bg-[#E8E1D6] flex items-center justify-center border-4 border-white shadow-sm overflow-hidden text-[#A0978D]">
-                        {/* Provision for actual patient photo */}
                         <User className="h-10 w-10 text-[#78706A]" />
                     </div>
                     <div>
@@ -126,7 +139,6 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
                 {/* ── OVERVIEW TAB ── */}
                 <TabsContent value="overview" className="mt-4">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
-                        {/* Photos section — full width, above demographics */}
                         <div className="md:col-span-3">
                             <PatientPhotoSection patientId={patient.id} />
                         </div>
@@ -232,7 +244,7 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <InvoicesListClient initialData={invoices} />
+                            <InvoicesListClient initialData={invoices} patientId={patientId} />
                         </CardContent>
                     </Card>
                 </TabsContent>

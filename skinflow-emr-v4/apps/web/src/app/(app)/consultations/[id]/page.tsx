@@ -1,27 +1,44 @@
-import { notFound } from 'next/navigation';
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useParams, useRouter } from 'next/navigation';
 import { ConsultationEditorClient } from '@/components/consultations/ConsultationEditorClient';
 import { clinicalApi } from '@/lib/services/clinical';
+import type { Consultation, ClinicalIntake } from '@/types/models';
 
-export const dynamic = 'force-dynamic';
+export default function ConsultationEditorPage() {
+    const { id } = useParams<{ id: string }>();
+    const router = useRouter();
+    const [consultation, setConsultation] = useState<Consultation | null>(null);
+    const [intake, setIntake] = useState<ClinicalIntake | undefined>(undefined);
+    const [isLoading, setIsLoading] = useState(true);
 
-export default async function ConsultationEditorPage({ params }: { params: Promise<{ id: string }> }) {
-    const resolvedParams = await params;
-    let consultation;
-    let intake;
+    useEffect(() => {
+        clinicalApi.consultations.get(id)
+            .then(async (data) => {
+                setConsultation(data);
+                if (data.appointment) {
+                    try {
+                        const intakes = await clinicalApi.intake.getByAppointment(data.appointment);
+                        if (intakes?.length > 0) setIntake(intakes[0]);
+                    } catch {
+                        // non-fatal — intake section will just be empty
+                    }
+                }
+            })
+            .catch(() => router.replace('/consultations'))
+            .finally(() => setIsLoading(false));
+    }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    try {
-        consultation = await clinicalApi.consultations.get(resolvedParams.id);
-
-        // Attempt to fetch vitals if tied to an appointment
-        if (consultation.appointment) {
-            const intakes = await clinicalApi.intake.getByAppointment(consultation.appointment);
-            if (intakes && intakes.length > 0) {
-                intake = intakes[0];
-            }
-        }
-    } catch (error) {
-        notFound();
+    if (isLoading) {
+        return (
+            <div className="flex items-center justify-center h-64 text-muted-foreground">
+                Loading consultation…
+            </div>
+        );
     }
+
+    if (!consultation) return null;
 
     return (
         <div className="space-y-6 max-w-6xl mx-auto">
