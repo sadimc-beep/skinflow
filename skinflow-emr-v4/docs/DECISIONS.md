@@ -385,9 +385,31 @@ main                    ← Always deployable, protected
 
 ---
 
+## AD-016: Production Hosting — Linode Singapore + Cloudflare
+
+**Decision:** Host on a Linode 4GB VPS in Singapore with Cloudflare for DNS and HTTPS.
+
+**Context:** Needed affordable production hosting with low latency from Dhaka, Bangladesh. The primary user base (clinic staff) is in Dhaka. Evaluated several options before deciding.
+
+**Considered:**
+- **Oracle Free Tier** — Eliminated: persistent capacity availability issues in the region; unreliable for production
+- **Hetzner** — Eliminated: no Singapore data centre; nearest is Singapore via partner (higher latency), EU DC too far from BD
+- **Vercel (frontend) + Railway/Render (backend)** — Eliminated: added complexity of split deployment; Vercel pricing scales poorly for file uploads
+
+**Chose:** Linode 4GB Singapore ($24/mo) + Cloudflare free tier
+
+**Consequences:**
+- ~50ms latency from Dhaka (Singapore is the closest major DC to Bangladesh)
+- Simple VPS management — no container orchestration needed at current scale
+- Cloudflare handles SSL termination and provides DDoS protection for free
+- Single server means database and app share resources — acceptable until user growth requires separation
+- Manual deployment workflow (no CI/CD yet); `git pull` + `systemctl restart` on server
+
+---
+
 ## Decisions Pending / Open Questions [VERIFY]
 
-1. **File Storage Strategy**: URL-based photo references exist; need decision on actual file storage (S3, local, etc.)
+1. ~~**File Storage Strategy**~~ **RESOLVED** — Using local filesystem (`media/`) in production. S3 config is wired in `settings.py` via `AWS_STORAGE_BUCKET_NAME` env var for future migration.
 
 2. **Notification System**: Email/SMS not implemented; need to choose providers and patterns
 

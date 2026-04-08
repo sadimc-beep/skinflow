@@ -146,11 +146,15 @@ Response: { access, refresh, user: {...}, organization: {...} }
 - Next.js dev: `npm run dev` (port 3000)
 - Database: SQLite (`db.sqlite3`)
 
-### Production (Planned)
-- Database: PostgreSQL
-- Django: Gunicorn + NGINX or containerized
-- Next.js: Vercel or Node.js server
-- Static files: Cloud storage (S3/GCS)
+### Production
+- **VPS**: Linode 4GB RAM, Singapore region
+- **Domain**: `skinflow.app` (frontend), `api.skinflow.app` (backend)
+- **Database**: PostgreSQL on same server (`skinflow_dev` database)
+- **Django**: Gunicorn (3 workers) behind Nginx reverse proxy, managed by systemd
+- **Frontend**: Next.js production build (`npm run build`) served by Nginx reverse proxy
+- **SSL**: Cloudflare Flexible (Cloudflare terminates HTTPS, proxies HTTP to origin)
+- **Static files**: Local filesystem — `staticfiles/` collected via `collectstatic`
+- **Media files**: Local filesystem — `media/` under app directory
 
 ### Environment Configuration
 All settings externalized via environment variables:

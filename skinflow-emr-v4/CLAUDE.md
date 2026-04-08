@@ -122,6 +122,23 @@ cd skinflow-emr-v4 && source venv/bin/activate && python manage.py runserver
 cd skinflow-emr-v4/apps/web && npm run dev
 ```
 
+### Deploy (Production — Linode Singapore)
+```bash
+# On the server: pull latest, restart services
+git pull
+source venv/bin/activate
+pip install -r requirements.txt
+python manage.py migrate
+python manage.py collectstatic --noinput
+sudo systemctl restart skinflow-backend
+
+# Frontend rebuild
+cd apps/web
+npm install
+npm run build
+sudo systemctl restart skinflow-frontend
+```
+
 ## Environment Variables
 
 ### Backend (.env)
@@ -170,7 +187,7 @@ These blockers prevent other features from being built correctly:
 
 ### What's Already Built
 
-Core EMR workflow is functional: patients, appointments, consultations, prescriptions, procedure sessions, basic billing with entitlements, inventory with PO/GRN, basic accounting (chart of accounts, automated journal posting, standard reports), and SaaS super admin portal. See `docs/STATUS.md` for detailed breakdown.
+Core EMR workflow is functional: patients, appointments, consultations, prescriptions, procedure sessions, basic billing with entitlements, inventory with PO/GRN, basic accounting (chart of accounts, automated journal posting, standard reports), and SaaS super admin portal. Camera capture with WebRTC (7 overlay types, multi-angle 5-shot sequence) is live on the session detail and patient pages. The app is deployed to production on Linode Singapore (Gunicorn + Nginx + Cloudflare). See `docs/STATUS.md` for detailed breakdown.
 
 ---
 

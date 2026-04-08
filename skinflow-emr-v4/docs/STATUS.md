@@ -56,6 +56,7 @@
 - Dashboard with stats cards (appointments today, unpaid invoices, sessions)
 - Patient list with search UI structure
 - Patient CRUD (create, view, edit)
+- Patient photo gallery (registration photos with lightbox)
 - Appointment calendar view (weekly)
 - Appointment booking form
 - Clinical overview page (stats, navigation)
@@ -77,6 +78,8 @@
 - Settings (roles, staff)
 - Login page with JWT handling
 - Superadmin portal (organizations, plans, invoices, announcements, audit log)
+- **Camera Capture Component** — WebRTC getUserMedia, SVG positioning overlays (7 angles), capture/retake/upload flow, front/rear camera toggle, permission error handling
+- **Multi-Angle Capture Flow** — 5-angle face sequence (front, left, right, 3/4 left, 3/4 right), step progress indicator, per-angle skip support, integrated into session pre/post-session documentation
 
 ---
 
@@ -135,8 +138,8 @@
 - Bulk operations (batch status updates)
 
 #### Infrastructure
-- Production database setup (PostgreSQL)
-- Deployment configuration (Docker, Gunicorn)
+- ~~Production database setup (PostgreSQL)~~ **DONE** — Linode Singapore VPS, PostgreSQL on same server
+- ~~Deployment configuration~~ **DONE** — Gunicorn (3 workers) + Nginx reverse proxy, systemd service, Cloudflare HTTPS
 - CI/CD pipeline
 - Testing suite (unit, integration, e2e)
 - Monitoring/logging in production
@@ -224,7 +227,7 @@ Highest daily value for clinic staff.
 
 ---
 
-*Last reviewed: April 7, 2026*
+*Last reviewed: April 8, 2026*
 
 ---
 
