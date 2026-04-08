@@ -856,12 +856,14 @@ function SubscriptionTab({ org, plans, subscription, onRefresh }: { org: SaaSOrg
                     <input type="date" className={inp} value={form.next_billing_date} onChange={e => setForm(f => ({ ...f, next_billing_date: e.target.value }))} />
                 </Field>
 
-                <Field label="Marketing Module Add-on" className="md:col-span-2">
-                    <button type="button" onClick={() => setForm(f => ({ ...f, has_marketing_addon: !f.has_marketing_addon }))} className={`flex items-center gap-3 px-4 py-2.5 rounded-xl border w-full text-left text-sm font-semibold transition ${form.has_marketing_addon ? 'border-[#7A9E8A] bg-[#7A9E8A]/5 text-[#7A9E8A]' : 'border-[#E8E1D6] text-[#78706A]'}`}>
-                        {form.has_marketing_addon ? <ToggleRight className="w-5 h-5" /> : <ToggleLeft className="w-5 h-5" />}
-                        {form.has_marketing_addon ? 'Enabled' : 'Disabled'}
-                    </button>
-                </Field>
+                <div className="md:col-span-2">
+                    <Field label="Marketing Module Add-on">
+                        <button type="button" onClick={() => setForm(f => ({ ...f, has_marketing_addon: !f.has_marketing_addon }))} className={`flex items-center gap-3 px-4 py-2.5 rounded-xl border w-full text-left text-sm font-semibold transition ${form.has_marketing_addon ? 'border-[#7A9E8A] bg-[#7A9E8A]/5 text-[#7A9E8A]' : 'border-[#E8E1D6] text-[#78706A]'}`}>
+                            {form.has_marketing_addon ? <ToggleRight className="w-5 h-5" /> : <ToggleLeft className="w-5 h-5" />}
+                            {form.has_marketing_addon ? 'Enabled' : 'Disabled'}
+                        </button>
+                    </Field>
+                </div>
             </div>
 
             {/* Cost Preview */}
