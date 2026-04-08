@@ -8,6 +8,7 @@
 - After completing any feature, update docs/STATUS.md
 - Never regenerate docs from scratch — only update changed sections
 - Default to Sonnet model for daily work unless I say otherwise
+- When I say "explain your plan" or "read first", always explain your approach and wait for explicit approval before writing or modifying any code. Do not proceed until I say "go ahead" or "approved".
 
 ## Permission Policy
 - Auto-approve: file reads, file writes, file edits, 
