@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, Fragment } from "react";
+import { useState, useEffect, Fragment } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { format, parseISO } from "date-fns";
@@ -15,6 +15,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { FileText, Plus, Receipt, ChevronDown, ChevronUp } from "lucide-react";
+import { clinicalApi } from "@/lib/services/clinical";
 import type { Consultation } from "@/types/models";
 import { GenerateBillModal } from "./GenerateBillModal";
 
@@ -29,10 +30,21 @@ export function ConsultationsListClient({
   patientView = false,
 }: Props) {
   const router = useRouter();
-  const [consultations] = useState(initialData);
+  const [consultations, setConsultations] = useState(initialData);
+  const [isLoading, setIsLoading] = useState(!patientView);
   const [billingConsultation, setBillingConsultation] =
     useState<Consultation | null>(null);
   const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
+
+  // patientView=true means embedded in the patient detail page, which passes its own initialData.
+  // For the standalone /consultations list page, fetch client-side (JWT lives in localStorage).
+  useEffect(() => {
+    if (patientView) return;
+    clinicalApi.consultations.list({ limit: 200 })
+      .then(res => setConsultations(res.results || []))
+      .catch(console.error)
+      .finally(() => setIsLoading(false));
+  }, [patientView]);
 
   const toggleExpand = (id: number) => {
     setExpandedIds((prev) => {
@@ -98,7 +110,13 @@ export function ConsultationsListClient({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {consultations.length === 0 ? (
+            {isLoading ? (
+              <TableRow className="border-b border-[#E8E1D6]">
+                <TableCell colSpan={6} className="h-24 text-center text-[#A0978D] font-medium">
+                  Loading consultations…
+                </TableCell>
+              </TableRow>
+            ) : consultations.length === 0 ? (
               <TableRow className="border-b border-[#E8E1D6]">
                 <TableCell
                   colSpan={6}

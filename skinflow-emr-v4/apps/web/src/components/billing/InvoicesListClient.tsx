@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { format, parseISO } from 'date-fns';
@@ -14,6 +14,7 @@ import {
     Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select';
 import { Search, FileText } from 'lucide-react';
+import { billingApi } from '@/lib/services/billing';
 import type { Invoice } from '@/types/models';
 
 const formatCurrency = (amount: string | number) => {
@@ -44,9 +45,17 @@ function getStatusBadge(status: string) {
 
 export function InvoicesListClient({ initialData }: { initialData: Invoice[] }) {
     const router = useRouter();
-    const [invoices] = useState(initialData);
+    const [invoices, setInvoices] = useState(initialData);
+    const [isLoading, setIsLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('ALL');
+
+    useEffect(() => {
+        billingApi.invoices.list({ limit: 200 })
+            .then(res => setInvoices(res.results || []))
+            .catch(console.error)
+            .finally(() => setIsLoading(false));
+    }, []);
 
     const filteredInvoices = invoices.filter(inv => {
         const term = searchTerm.toLowerCase();
@@ -100,7 +109,13 @@ export function InvoicesListClient({ initialData }: { initialData: Invoice[] }) 
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {filteredInvoices.length === 0 ? (
+                        {isLoading ? (
+                            <TableRow>
+                                <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
+                                    Loading invoices…
+                                </TableCell>
+                            </TableRow>
+                        ) : filteredInvoices.length === 0 ? (
                             <TableRow>
                                 <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
                                     No invoices found matching criteria.

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -22,15 +22,23 @@ import {
     DropdownMenuLabel,
     DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
+import { patientsApi } from '@/lib/services/patients';
 import type { Patient } from '@/types/models';
 
-export function PatientsListClient({ initialPatients }: { initialPatients: Patient[] }) {
+export function PatientsListClient() {
     const router = useRouter();
+    const [patients, setPatients] = useState<Patient[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
 
-    // Basic client-side filtering for immediate feedback, 
-    // real implementation would debounce and call Next.js Server Action or API
-    const filteredPatients = initialPatients.filter(p =>
+    useEffect(() => {
+        patientsApi.list({ limit: 200 })
+            .then(res => setPatients(res.results || []))
+            .catch(console.error)
+            .finally(() => setIsLoading(false));
+    }, []);
+
+    const filteredPatients = patients.filter(p =>
         `${p.first_name} ${p.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
         p.phone_primary.includes(searchTerm)
     );
@@ -71,7 +79,13 @@ export function PatientsListClient({ initialPatients }: { initialPatients: Patie
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {filteredPatients.length === 0 ? (
+                        {isLoading ? (
+                            <TableRow>
+                                <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+                                    Loading patients…
+                                </TableCell>
+                            </TableRow>
+                        ) : filteredPatients.length === 0 ? (
                             <TableRow>
                                 <TableCell colSpan={6} className="h-24 text-center">
                                     No patients found.

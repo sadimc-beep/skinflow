@@ -156,6 +156,7 @@
 6. **Soft Delete**: Models use hard delete; consider soft delete for audit
 7. **Photo Storage**: URL-based, no actual file handling
 8. ~~**Multi-Tenancy Fallback**~~: Resolved — `get_current_org()` now raises `AuthenticationFailed` instead of falling back to first org; all core views require `IsAuthenticated`; global DRF default changed to `IsAuthenticated`
+9. ~~**Duplicate patient phone error**~~: Resolved — `PatientViewSet.perform_create` now catches `IntegrityError` on `(organization, phone_primary)` and returns HTTP 400 with `"A patient with this phone number already exists."`
 
 ---
 

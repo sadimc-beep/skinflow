@@ -2,7 +2,9 @@ from rest_framework import viewsets, permissions, pagination, serializers, statu
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework.exceptions import ValidationError
 from django.utils.decorators import method_decorator
+from django.db import IntegrityError
 
 from .models import Patient
 from .serializers import PatientSerializer
@@ -37,15 +39,16 @@ class PatientViewSet(viewsets.ModelViewSet):
         """
         org = get_current_org(self.request)
         check_org_limit(org, 'patients')
-        serializer.save(organization=org)
+        try:
+            serializer.save(organization=org)
+        except IntegrityError:
+            raise ValidationError("A patient with this phone number already exists.")
         
     def perform_destroy(self, instance):
         """
         Delete protection: block deletion if any linked records exist.
         Checks all relations that carry clinical or financial history.
         """
-        from rest_framework.exceptions import ValidationError
-
         blocked = []
 
         if instance.appointments.exists():

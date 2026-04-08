@@ -1,19 +1,6 @@
 import { ConsultationsListClient } from '@/components/consultations/ConsultationsListClient';
-import { clinicalApi } from '@/lib/services/clinical';
-import type { Consultation } from '@/types/models';
 
-export const dynamic = 'force-dynamic';
-
-export default async function ConsultationsPage() {
-    let consultations: Consultation[] = [];
-
-    try {
-        const res = await clinicalApi.consultations.list({ limit: 50 });
-        consultations = res.results || [];
-    } catch (error) {
-        console.error('Failed to fetch consultations:', error);
-    }
-
+export default function ConsultationsPage() {
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
@@ -29,7 +16,7 @@ export default async function ConsultationsPage() {
                 </a>
             </div>
 
-            <ConsultationsListClient initialData={consultations} />
+            <ConsultationsListClient initialData={[]} />
         </div>
     )
 }
