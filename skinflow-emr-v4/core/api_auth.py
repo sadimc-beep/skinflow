@@ -26,29 +26,44 @@ def get_current_org(request=None):
     Resolves the current organization from the authenticated user's staff profile.
 
     Resolution order:
-      1. Superadmin impersonation header (X-Impersonate-Org)
-      2. Authenticated staff user's linked organization
-      3. Raises AuthenticationFailed — no silent fallback to first org
+      1. Superadmin impersonation header (X-Impersonate-Org) — only when header present
+      2. ClinicStaff profile → organization
+      3. Provider profile → organization (fallback for doctor/therapist accounts)
+      4. Raises AuthenticationFailed — no silent fallback
     """
     from core.models import Organization
     from rest_framework.exceptions import AuthenticationFailed
 
-    if request:
-        # 1. Superadmin impersonation header takes priority
-        if hasattr(request, 'user') and request.user.is_superuser:
-            impersonate_org_id = request.headers.get('X-Impersonate-Org')
-            if impersonate_org_id:
-                try:
-                    return Organization.objects.get(id=impersonate_org_id)
-                except Organization.DoesNotExist:
-                    raise AuthenticationFailed("Impersonation target organization not found.")
-            # Superuser without impersonation header — no org context (caller handles None)
-            return None
+    if not request:
+        raise AuthenticationFailed("Organization context could not be resolved. Ensure a valid JWT is provided.")
 
-        # 2. Authenticated staff user
-        if hasattr(request, 'user') and request.user.is_authenticated:
-            if hasattr(request.user, 'staff_profile') and getattr(request.user.staff_profile, 'organization', None):
-                return request.user.staff_profile.organization
-            raise AuthenticationFailed("Authenticated user has no linked organization.")
+    if not (hasattr(request, 'user') and request.user.is_authenticated):
+        raise AuthenticationFailed("Organization context could not be resolved. Ensure a valid JWT is provided.")
 
-    raise AuthenticationFailed("Organization context could not be resolved. Ensure a valid JWT is provided.")
+    # 1. Superadmin impersonation — only intercept when the header is explicitly present.
+    #    Superusers without the header fall through to the normal staff/provider lookup
+    #    so that clinic admin accounts created via createsuperuser work correctly.
+    impersonate_org_id = request.headers.get('X-Impersonate-Org')
+    if request.user.is_superuser and impersonate_org_id:
+        try:
+            return Organization.objects.get(id=impersonate_org_id)
+        except Organization.DoesNotExist:
+            raise AuthenticationFailed("Impersonation target organization not found.")
+
+    # 2. ClinicStaff profile (front desk, managers, admins)
+    try:
+        staff_profile = request.user.staff_profile
+        if staff_profile.organization_id:
+            return staff_profile.organization
+    except Exception:
+        pass
+
+    # 3. Provider profile (doctors, therapists — may not have a ClinicStaff record)
+    try:
+        provider_profile = request.user.provider_profile
+        if provider_profile.organization_id:
+            return provider_profile.organization
+    except Exception:
+        pass
+
+    raise AuthenticationFailed("Authenticated user has no linked organization.")
