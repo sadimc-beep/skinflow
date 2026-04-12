@@ -1,4 +1,4 @@
-import { fetchApi } from '../api';
+import { fetchApi, resolveMediaUrl } from '../api';
 
 const DJANGO_BASE_URL = process.env.NEXT_PUBLIC_DJANGO_BASE_URL || 'http://127.0.0.1:8000';
 
@@ -151,23 +151,31 @@ export const clinicalApi = {
                 'clinical/consent-templates',
             ),
 
-        uploadPhoto: (id: number | string, file: File, description = '') => {
+        uploadPhoto: async (id: number | string, file: File, description = '') => {
             const form = new FormData();
             form.append('photo', file);
             form.append('category', 'PRE_SESSION');
             if (description) form.append('description', description);
-            return fetchApi<{ id: number; photo_url: string }>(
+            const res = await fetchApi<{ id: number; photo_url: string }>(
                 `clinical/procedure-sessions/${id}/upload_photo`,
                 { method: 'POST', body: form },
             );
+            return { ...res, photo_url: resolveMediaUrl(res.photo_url) ?? res.photo_url };
         }
     },
 
     photos: {
-        list: (params?: { patient?: number; category?: string; limit?: number }) =>
-            fetchApi<{ count: number; results: Array<{ id: number; photo: string; photo_url: string; category: string; taken_at: string | null; description: string }> }>('clinical/photos', { params }),
+        list: async (params?: { patient?: number; category?: string; limit?: number }) => {
+            const res = await fetchApi<{ count: number; results: Array<{ id: number; photo: string; photo_url: string; category: string; taken_at: string | null; description: string }> }>('clinical/photos', { params });
+            return {
+                ...res,
+                results: res.results.map(p => ({ ...p, photo_url: resolveMediaUrl(p.photo_url) ?? p.photo_url })),
+            };
+        },
 
-        get: (id: number | string) =>
-            fetchApi<{ id: number; photo_url: string; photo: string }>(`clinical/photos/${id}`),
+        get: async (id: number | string) => {
+            const res = await fetchApi<{ id: number; photo_url: string; photo: string }>(`clinical/photos/${id}`);
+            return { ...res, photo_url: resolveMediaUrl(res.photo_url) ?? res.photo_url };
+        },
     },
 };

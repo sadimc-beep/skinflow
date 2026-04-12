@@ -1,5 +1,18 @@
 const DJANGO_BASE_URL = process.env.NEXT_PUBLIC_DJANGO_BASE_URL || 'http://127.0.0.1:8000';
 
+/**
+ * Ensures a media URL is absolute and points to the API server.
+ * Handles two cases the backend can produce in production:
+ *   - Relative path (/media/...)          → prepend DJANGO_BASE_URL
+ *   - Internal absolute (http://127.../)  → already caught by startsWith check;
+ *     if the backend ever returns the correct external URL it passes through unchanged.
+ */
+export function resolveMediaUrl(url: string | null | undefined): string | null {
+    if (!url) return null;
+    if (url.startsWith('http')) return url;
+    return `${DJANGO_BASE_URL}${url}`;
+}
+
 type ApiOptions = RequestInit & {
     params?: Record<string, string | number | boolean>;
 };
