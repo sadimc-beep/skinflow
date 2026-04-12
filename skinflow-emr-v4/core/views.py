@@ -153,6 +153,7 @@ class LoginView(APIView):
                 'organization_id': staff.organization_id if staff else None,
                 'organization_name': staff.organization.name if staff and staff.organization else None,
                 'is_superuser': is_super,
+                'is_org_admin': staff.is_org_admin if staff else False,
             }
         })
 
@@ -186,6 +187,7 @@ class MeView(APIView):
             'organization_id': org.id if org else None,
             'organization_name': org.name if org else None,
             'is_superuser': user.is_superuser,
+            'is_org_admin': staff.is_org_admin if staff else False,
         })
 
 class RoleViewSet(viewsets.ModelViewSet):

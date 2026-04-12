@@ -14,9 +14,11 @@ interface AuthUser {
     username: string;
     name: string;
     email: string;
-    role: UserRole;
+    role: UserRole | null;
     organization_id: number | null;
     organization_name: string | null;
+    is_superuser: boolean;
+    is_org_admin?: boolean;
 }
 
 interface AuthContextType {
@@ -74,9 +76,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
      */
     const hasPermission = (permission: string): boolean => {
         if (!user) return false;
-        // Superuser gets everything
-        if (user.role?.name === 'Admin') return true;
-        if (permission === '*') return !!user;
+        // Superusers and org admins bypass all permission checks
+        if (user.is_superuser || user.is_org_admin) return true;
+        if (permission === '*') return true;
 
         try {
             const [domain, action] = permission.split('.');
