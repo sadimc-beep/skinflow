@@ -21,6 +21,12 @@ export const appointmentsApi = {
             body: JSON.stringify(data),
         }),
 
+    update: (id: number | string, data: Partial<AppointmentFormData>) =>
+        fetchApi<Appointment>(`clinical/appointments/${id}`, {
+            method: 'PATCH',
+            body: JSON.stringify(data),
+        }),
+
     updateStatus: (id: number | string, status: string) =>
         fetchApi<Appointment>(`clinical/appointments/${id}`, {
             method: 'PATCH',

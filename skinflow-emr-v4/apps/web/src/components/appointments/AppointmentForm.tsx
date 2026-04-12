@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useRouter } from 'next/navigation';
+import { format } from 'date-fns';
 import { coreApi, appointmentsApi } from '@/lib/services/appointments';
 import { patientsApi } from '@/lib/services/patients';
 import { Button } from '@/components/ui/button';
@@ -11,10 +12,16 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Combobox } from '@/components/ui/combobox';
 import { toast } from 'sonner';
-import type { AppointmentFormData, Provider, Patient } from '@/types/models';
+import type { AppointmentFormData, Appointment, Provider, Patient } from '@/types/models';
 
-export function AppointmentForm() {
+interface AppointmentFormProps {
+    /** When provided the form operates in edit mode — pre-fills fields and PATCHes on submit */
+    appointment?: Appointment;
+}
+
+export function AppointmentForm({ appointment }: AppointmentFormProps) {
     const router = useRouter();
+    const isEditing = !!appointment;
 
     const [providers, setProviders] = useState<Provider[]>([]);
     const [patients, setPatients]   = useState<Patient[]>([]);
@@ -33,16 +40,25 @@ export function AppointmentForm() {
             .finally(() => setIsLoadingData(false));
     }, []);
 
+    // Build default datetime value — use existing appointment's time in edit mode
+    function toDatetimeLocal(isoString: string) {
+        const d = new Date(isoString);
+        d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+        return d.toISOString().slice(0, 16);
+    }
+
     const now = new Date();
     now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-    const defaultDateTime = now.toISOString().slice(0, 16);
+    const defaultDateTime = appointment
+        ? toDatetimeLocal(appointment.date_time)
+        : now.toISOString().slice(0, 16);
 
     const form = useForm<AppointmentFormData>({
         defaultValues: {
-            patient: undefined,
-            provider: undefined,
+            patient:   appointment?.patient   ?? undefined,
+            provider:  appointment?.provider  ?? undefined,
             date_time: defaultDateTime,
-            notes: '',
+            notes:     appointment?.notes     ?? '',
         },
     });
 
@@ -52,12 +68,18 @@ export function AppointmentForm() {
                 ...data,
                 date_time: new Date(data.date_time).toISOString(),
             };
-            await appointmentsApi.create(payload);
-            toast.success('Appointment scheduled successfully');
-            router.push('/appointments');
+            if (isEditing) {
+                await appointmentsApi.update(appointment.id, payload);
+                toast.success('Appointment updated');
+                router.push(`/appointments/${appointment.id}`);
+            } else {
+                await appointmentsApi.create(payload);
+                toast.success('Appointment scheduled successfully');
+                router.push('/appointments');
+            }
             router.refresh();
         } catch (error: any) {
-            toast.error(error.message || 'Failed to schedule appointment');
+            toast.error(error.message || 'Failed to save appointment');
         }
     };
 
@@ -76,7 +98,7 @@ export function AppointmentForm() {
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
                 <Card>
                     <CardHeader>
-                        <CardTitle>Schedule Appointment</CardTitle>
+                        <CardTitle>{isEditing ? 'Edit Appointment' : 'Schedule Appointment'}</CardTitle>
                     </CardHeader>
                     <CardContent className="grid gap-6">
                         <FormField
@@ -156,7 +178,9 @@ export function AppointmentForm() {
 
                 <div className="flex justify-end gap-4">
                     <Button variant="outline" type="button" onClick={() => router.back()}>Cancel</Button>
-                    <Button type="submit" disabled={form.formState.isSubmitting}>Schedule</Button>
+                    <Button type="submit" disabled={form.formState.isSubmitting}>
+                        {isEditing ? 'Save Changes' : 'Schedule'}
+                    </Button>
                 </div>
             </form>
         </Form>

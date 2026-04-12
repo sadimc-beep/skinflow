@@ -30,22 +30,39 @@ const STATUS_LABELS: Record<string, string> = {
 
 /* ─── Appointment Card ────────────────────────────────────────── */
 function ApptCard({ appt, onCancel }: { appt: Appointment; onCancel: () => void }) {
+    const router = useRouter();
     const startTime = format(parseISO(appt.date_time), 'HH:mm');
-    // default duration 30 min if no end time
     const endTime = appt.end_time ? format(parseISO(appt.end_time), 'HH:mm') : '';
     const name = `${appt.patient_details?.first_name ?? ''} ${appt.patient_details?.last_name ?? ''}`.trim() || '—';
     const label = STATUS_LABELS[appt.status] ?? appt.status;
 
+    const handleCancel = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (!window.confirm(`Cancel appointment for ${name}?`)) return;
+        onCancel();
+    };
+
     return (
-        <div className="relative group rounded-2xl bg-[#F7F3ED] text-[#1C1917] p-2.5 mb-1.5 min-h-[70px] flex flex-col justify-between hover:bg-[#E8E1D6] transition cursor-pointer select-none shadow-sm border border-[#E8E1D6]">
+        <div
+            className="relative group rounded-2xl bg-[#F7F3ED] text-[#1C1917] p-2.5 mb-1.5 min-h-[70px] flex flex-col justify-between hover:bg-[#E8E1D6] transition cursor-pointer select-none shadow-sm border border-[#E8E1D6]"
+            onClick={() => router.push(`/appointments/${appt.id}`)}
+        >
             {/* Top row: label + action icons */}
             <div className="flex items-center justify-between mb-1">
                 <span className="text-[10px] font-semibold text-[#C4A882] uppercase tracking-wide">{label}</span>
                 <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition">
-                    <button className="p-0.5 rounded hover:bg-[#E8E1D6] text-[#A0978D] hover:text-[#1C1917] transition">
+                    <button
+                        className="p-0.5 rounded hover:bg-[#E8E1D6] text-[#A0978D] hover:text-[#1C1917] transition"
+                        onClick={(e) => { e.stopPropagation(); router.push(`/appointments/${appt.id}/edit`); }}
+                        title="Edit appointment"
+                    >
                         <Pencil className="w-3 h-3" />
                     </button>
-                    <button className="p-0.5 rounded hover:bg-[#E8E1D6] text-[#A0978D] hover:text-[#C4705A] transition" onClick={(e) => { e.stopPropagation(); onCancel(); }}>
+                    <button
+                        className="p-0.5 rounded hover:bg-[#E8E1D6] text-[#A0978D] hover:text-[#C4705A] transition"
+                        onClick={handleCancel}
+                        title="Cancel appointment"
+                    >
                         <X className="w-3 h-3" />
                     </button>
                 </div>
@@ -55,7 +72,11 @@ function ApptCard({ appt, onCancel }: { appt: Appointment; onCancel: () => void 
             {/* Time row */}
             <div className="flex items-center justify-between mt-1">
                 <span className="text-[10px] text-[#A0978D] font-medium">{startTime}{endTime ? ` - ${endTime}` : ''}</span>
-                <button className="p-0.5 rounded hover:bg-[#E8E1D6] text-[#D9D0C5] hover:text-[#1C1917] transition">
+                <button
+                    className="p-0.5 rounded hover:bg-[#E8E1D6] text-[#D9D0C5] hover:text-[#1C1917] transition"
+                    onClick={(e) => { e.stopPropagation(); router.push(`/appointments/${appt.id}`); }}
+                    title="View details"
+                >
                     <Info className="w-3 h-3" />
                 </button>
             </div>
@@ -65,6 +86,7 @@ function ApptCard({ appt, onCancel }: { appt: Appointment; onCancel: () => void 
 
 /* ─── Day View Sidebar ────────────────────────────────────────── */
 function DayViewSidebar({ appointments, date }: { appointments: Appointment[]; date: Date }) {
+    const router = useRouter();
     const dateStr = toDateInputValue(date);
     const dayAppts = appointments.filter(a => a.date_time.startsWith(dateStr));
 
@@ -82,7 +104,11 @@ function DayViewSidebar({ appointments, date }: { appointments: Appointment[]; d
             ) : (
                 <div className="space-y-3">
                     {dayAppts.map(a => (
-                        <div key={a.id} className="flex items-center justify-between group">
+                        <div
+                            key={a.id}
+                            className="flex items-center justify-between group cursor-pointer"
+                            onClick={() => router.push(`/appointments/${a.id}`)}
+                        >
                             <div className="min-w-0">
                                 <p className="text-sm font-semibold text-[#1C1917] truncate">
                                     {a.patient_details?.first_name} {a.patient_details?.last_name}
@@ -93,7 +119,11 @@ function DayViewSidebar({ appointments, date }: { appointments: Appointment[]; d
                                 </p>
                                 <p className="text-[10px] text-[#C4A882] font-medium">{STATUS_LABELS[a.status] || a.status}</p>
                             </div>
-                            <button className="ml-2 shrink-0 w-6 h-6 rounded-full border border-[#E8E1D6] flex items-center justify-center text-[#D9D0C5] hover:text-[#C4A882] hover:border-[#C4A882] transition opacity-0 group-hover:opacity-100">
+                            <button
+                                className="ml-2 shrink-0 w-6 h-6 rounded-full border border-[#E8E1D6] flex items-center justify-center text-[#D9D0C5] hover:text-[#C4A882] hover:border-[#C4A882] transition opacity-0 group-hover:opacity-100"
+                                onClick={(e) => { e.stopPropagation(); router.push(`/appointments/${a.id}`); }}
+                                title="View details"
+                            >
                                 <Info className="w-3 h-3" />
                             </button>
                         </div>
@@ -232,13 +262,21 @@ export function AppointmentsListClient({ initialData, patientView = false }: Pro
                 {sorted.length === 0 ? (
                     <p className="text-sm text-muted-foreground py-8 text-center">No appointment history found.</p>
                 ) : sorted.map(a => (
-                    <div key={a.id} className="flex items-center justify-between rounded-2xl bg-[#F7F3ED] border border-[#E8E1D6] px-4 py-3 hover:bg-[#E8E1D6] transition">
+                    <div
+                        key={a.id}
+                        className="flex items-center justify-between rounded-2xl bg-[#F7F3ED] border border-[#E8E1D6] px-4 py-3 hover:bg-[#E8E1D6] transition cursor-pointer"
+                        onClick={() => router.push(`/appointments/${a.id}`)}
+                    >
                         <div>
                             <p className="text-xs font-bold text-[#C4A882]">{format(parseISO(a.date_time), 'MMM d, yyyy · hh:mm aaa')}</p>
                             <p className="text-sm font-semibold text-[#1C1917] mt-0.5">{STATUS_LABELS[a.status] || a.status}</p>
                             <p className="text-xs text-[#A0978D]">{a.notes || 'No notes'}</p>
                         </div>
-                        <button className="w-7 h-7 rounded-full border border-[#E8E1D6] flex items-center justify-center text-[#D9D0C5] hover:text-[#C4A882] hover:border-[#C4A882] transition">
+                        <button
+                            className="w-7 h-7 rounded-full border border-[#E8E1D6] flex items-center justify-center text-[#D9D0C5] hover:text-[#C4A882] hover:border-[#C4A882] transition"
+                            onClick={(e) => { e.stopPropagation(); router.push(`/appointments/${a.id}`); }}
+                            title="View details"
+                        >
                             <Info className="w-3.5 h-3.5" />
                         </button>
                     </div>
