@@ -18,7 +18,7 @@ from .serializers import (
     ClinicalPhotoSerializer, ConsentFormSerializer, ConsentFormTemplateSerializer,
 )
 from core.api_auth import get_current_org
-from core.permissions import HasRolePermission, IsKioskToken, IsDoctorOrOrgAdmin
+from core.permissions import HasRolePermission, IsKioskToken, IsDoctorOrOrgAdmin, HasAnyModulePermission
 from patients.views import StandardResultsSetPagination
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters
