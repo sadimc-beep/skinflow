@@ -72,6 +72,7 @@ export interface Appointment {
     fee_waiver_reason: string;
     fee_waiver_approved: boolean | null;   // null = pending, true = approved, false = denied
     is_fee_paid?: boolean;
+    consultation_id?: number | null;
     notes: string;
     created_at: string;
     updated_at: string;

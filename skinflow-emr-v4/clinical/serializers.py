@@ -17,11 +17,18 @@ class AppointmentSerializer(serializers.ModelSerializer):
     patient_details = PatientSerializer(source='patient', read_only=True)
     provider_details = ProviderSimpleSerializer(source='provider', read_only=True)
     is_fee_paid = serializers.SerializerMethodField()
-    
+    consultation_id = serializers.SerializerMethodField()
+
     class Meta:
         model = Appointment
         fields = '__all__'
         read_only_fields = ['organization']
+
+    def get_consultation_id(self, obj):
+        try:
+            return obj.consultation.id
+        except Exception:
+            return None
 
     def get_is_fee_paid(self, obj):
         if not obj.fee or obj.fee <= 0:

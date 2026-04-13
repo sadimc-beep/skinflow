@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { format, parseISO } from 'date-fns';
 import { appointmentsApi } from '@/lib/services/appointments';
+import { clinicalApi } from '@/lib/services/clinical';
 import { ArrivedModal } from '@/components/appointments/ArrivedModal';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -52,7 +53,8 @@ function StatusBadge({ status, waiverPending, waiverDenied }: { status: string; 
 export default function AppointmentDetailPage() {
     const { id } = useParams<{ id: string }>();
     const router = useRouter();
-    const { hasPermission } = useAuth();
+    const { user } = useAuth();
+    const isConsultant = user?.role?.name === 'Owner' || user?.role?.name === 'Doctor';
     const [appt, setAppt] = useState<Appointment | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [showArrivedModal, setShowArrivedModal] = useState(false);
@@ -85,6 +87,23 @@ export default function AppointmentDetailPage() {
         } catch (e: any) {
             toast.error(e.message || 'Failed to submit waiver request');
             throw e;
+        }
+    };
+
+    const handleStartConsultation = async () => {
+        if (!appt) return;
+        setActionLoading('start_consultation');
+        try {
+            const consultation = await clinicalApi.consultations.create({
+                patient: appt.patient,
+                provider: appt.provider,
+                appointment: appt.id,
+            });
+            await appointmentsApi.updateStatus(appt.id, 'IN_CONSULTATION');
+            router.push(`/consultations/${consultation.id}`);
+        } catch (e: any) {
+            toast.error(e.message || 'Failed to start consultation');
+            setActionLoading(null);
         }
     };
 
@@ -220,7 +239,7 @@ export default function AppointmentDetailPage() {
 
                 {/* ARRIVED + waiver pending → consultant approve/deny (or awaiting badge for front desk) */}
                 {appt.status === 'ARRIVED' && waiverPending && (
-                    hasPermission('clinical.write') ? (
+                    isConsultant ? (
                         <>
                             <Button
                                 onClick={() => handleWaiverDecision(true)}
@@ -261,14 +280,14 @@ export default function AppointmentDetailPage() {
 
                 {/* READY_FOR_CONSULT → start consultation */}
                 {appt.status === 'READY_FOR_CONSULT' && (
-                    <Button onClick={() => router.push('/consultations')}>
-                        Start Consultation
+                    <Button onClick={handleStartConsultation} disabled={actionLoading === 'start_consultation'}>
+                        {actionLoading === 'start_consultation' ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Starting…</> : 'Start Consultation'}
                     </Button>
                 )}
 
                 {/* IN_CONSULTATION → view consultation */}
                 {appt.status === 'IN_CONSULTATION' && (
-                    <Button variant="outline" onClick={() => router.push('/consultations')}>
+                    <Button variant="outline" onClick={() => router.push(appt.consultation_id ? `/consultations/${appt.consultation_id}` : '/consultations')}>
                         View Consultation
                     </Button>
                 )}

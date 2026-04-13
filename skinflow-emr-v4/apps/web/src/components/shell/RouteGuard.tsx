@@ -24,7 +24,7 @@ export function RouteGuard({ children }: { children: React.ReactNode }) {
     const { hasPermission, isLoading, user } = useAuth();
     const pathname = usePathname();
     const router = useRouter();
-    const [authorized, setAuthorized] = useState(false);
+    const [authorized, setAuthorized] = useState<boolean | null>(null);
 
     useEffect(() => {
         if (isLoading || !user) return;
@@ -43,10 +43,10 @@ export function RouteGuard({ children }: { children: React.ReactNode }) {
         setAuthorized(true);
     }, [pathname, hasPermission, isLoading, user]);
 
-    if (isLoading || (!authorized && user)) {
+    if (isLoading || authorized === null || authorized === false) {
         return (
             <div className="h-full flex items-center justify-center p-8">
-                {!authorized && user ? (
+                {authorized === false && user ? (
                     <div className="flex flex-col items-center max-w-sm text-center">
                         <div className="w-16 h-16 bg-[#C4705A]/10 text-[#C4705A] rounded-2xl flex items-center justify-center mb-6">
                             <ShieldAlert className="w-8 h-8" />
