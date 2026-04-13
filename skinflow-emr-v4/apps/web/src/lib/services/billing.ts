@@ -57,8 +57,8 @@ export const billingApi = {
     },
 
     entitlements: {
-        list: (params?: { patient?: number; is_active?: boolean; limit?: number }) =>
-            fetchApi<PaginatedResponse<any>>('billing/entitlements', { params }), // using any for Entitlement to avoid circular cross-imports if models isn't fully robust
+        list: (params?: { patient?: number; is_active?: boolean; invoice?: number; limit?: number }) =>
+            fetchApi<PaginatedResponse<any>>('billing/entitlements', { params }),
     },
 
     invoiceItems: {

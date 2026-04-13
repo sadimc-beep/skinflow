@@ -22,6 +22,7 @@ import { toast } from 'sonner';
 import { Printer, ArrowLeft, CheckCircle2, Clock, FileText, User, Download } from 'lucide-react';
 import type { Invoice } from '@/types/models';
 import { useAuth } from '@/lib/context/AuthContext';
+import { InvoiceSessionsPanel } from './InvoiceSessionsPanel';
 
 const formatCurrency = (amount: string | number) => {
     const num = typeof amount === 'string' ? parseFloat(amount) : amount;
@@ -267,6 +268,13 @@ export function InvoiceDetailClient({ initialData }: { initialData: Invoice }) {
                             </Table>
                         )}
                     </div>
+                    {/* Sessions to Schedule — shown on PAID invoices with procedure entitlements */}
+                    {invoice.status === 'PAID' && invoice.patient_details?.id && (
+                        <InvoiceSessionsPanel
+                            invoiceId={invoice.id}
+                            patientId={invoice.patient_details.id}
+                        />
+                    )}
                 </div>
 
                 {/* Summary Panel */}

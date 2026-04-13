@@ -238,7 +238,7 @@ Highest daily value for clinic staff.
 
 ---
 
-*Last reviewed: April 13, 2026*
+*Last reviewed: April 13, 2026 — Stage 2 (Procedure Sessions) complete*
 
 ---
 

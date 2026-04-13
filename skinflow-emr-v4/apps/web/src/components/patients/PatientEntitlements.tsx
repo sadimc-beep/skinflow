@@ -6,6 +6,7 @@ import { format } from 'date-fns';
 import { billingApi } from '@/lib/services/billing';
 import { clinicalApi } from '@/lib/services/clinical';
 import { coreApi } from '@/lib/services/appointments';
+import { mastersApi } from '@/lib/services/masters';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -23,12 +24,14 @@ interface ScheduleDialogState {
     date: string;
     time: string;
     providerId: string;
+    roomId: string;
 }
 
 export function PatientEntitlements({ patientId, consultationId }: { patientId: number, consultationId?: number }) {
     const router = useRouter();
     const [entitlements, setEntitlements] = useState<any[]>([]);
     const [providers, setProviders] = useState<Provider[]>([]);
+    const [rooms, setRooms] = useState<{ id: number; name: string }[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [scheduleDialog, setScheduleDialog] = useState<ScheduleDialogState | null>(null);
     const [isScheduling, setIsScheduling] = useState(false);
@@ -41,10 +44,12 @@ export function PatientEntitlements({ patientId, consultationId }: { patientId: 
         Promise.allSettled([
             billingApi.entitlements.list({ patient: patientId }),
             coreApi.providers.list({ is_active: true }),
-        ]).then(([entRes, provRes]) => {
+            mastersApi.procedureRooms.list(),
+        ]).then(([entRes, provRes, roomRes]) => {
             if (!mounted) return;
             if (entRes.status === 'fulfilled') setEntitlements(entRes.value.results || []);
             if (provRes.status === 'fulfilled') setProviders(provRes.value.results || []);
+            if (roomRes.status === 'fulfilled') setRooms((roomRes.value.results || []).filter((r: any) => r.is_active));
         }).finally(() => {
             if (mounted) setIsLoading(false);
         });
@@ -58,6 +63,7 @@ export function PatientEntitlements({ patientId, consultationId }: { patientId: 
             date: todayDate,
             time: nowTime,
             providerId: '',
+            roomId: '',
         });
     };
 
@@ -73,6 +79,9 @@ export function PatientEntitlements({ patientId, consultationId }: { patientId: 
             };
             if (scheduleDialog.providerId) {
                 payload.provider = parseInt(scheduleDialog.providerId);
+            }
+            if (scheduleDialog.roomId) {
+                payload.room = parseInt(scheduleDialog.roomId);
             }
             if (consultationId) {
                 payload.consultation = consultationId;
@@ -240,6 +249,24 @@ export function PatientEntitlements({ patientId, consultationId }: { patientId: 
                                 </SelectContent>
                             </Select>
                         </div>
+                        {rooms.length > 0 && (
+                            <div className="space-y-1.5">
+                                <Label>Treatment Room <span className="text-muted-foreground text-xs">(optional)</span></Label>
+                                <Select
+                                    value={scheduleDialog?.roomId ?? ''}
+                                    onValueChange={(val) => setScheduleDialog(prev => prev ? { ...prev, roomId: val } : prev)}
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Assign later…" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {rooms.map(r => (
+                                            <SelectItem key={r.id} value={String(r.id)}>{r.name}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        )}
                     </div>
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setScheduleDialog(null)}>Cancel</Button>

@@ -4,7 +4,7 @@
 > **Client:** Miracle Aesthetics (Dr. Shaheen Sultana Jolly), Dhanmondi, Dhaka
 > **Users:** 9 (2 doctors, 2 therapists, 2 front desk, 1 store/accountant, 1 owner, 1 admin/Minhaz)
 > **Plan:** Starter (~10 patients/day)
-> **Last Updated:** April 13, 2026
+> **Last Updated:** April 13, 2026 (Stage 2 complete)
 
 ---
 
@@ -42,24 +42,24 @@
 
 ---
 
-## Stage 2: Procedure Sessions (April 17-20) — IN PROGRESS
+## Stage 2: Procedure Sessions (April 13) — COMPLETE ✅
 
 ### Phase 1 — Fix Blockers
-- [ ] Entitlement selector on session detail page (links entitlement to session before start)
-- [ ] canStart guard updated to require entitlement
-- [ ] Generic notes section for non-specialized procedures
-- [ ] Fix date column (scheduled_at instead of created_at)
+- [x] Entitlement selector on session detail page (links entitlement to session before start)
+- [x] canStart guard updated to require entitlement
+- [x] Generic notes section for non-specialized procedures
+- [x] Fix date column (scheduled_at instead of created_at)
 
 ### Phase 2 — Session Scheduling
-- [ ] "Entitlements & Sessions" on patient detail page (rename existing Packages tab)
-- [ ] Schedule Session from entitlement (modal: date/time, therapist, room)
-- [ ] Auto-link entitlement when session created from entitlement
-- [ ] "Schedule Sessions" banner on paid invoice detail
+- [x] "Entitlements" tab on patient detail page (renamed from Packages)
+- [x] Schedule Session from entitlement (modal: date/time, therapist, room)
+- [x] Auto-link entitlement when session created from entitlement
+- [x] "Sessions to Schedule" panel on paid invoice detail
 
 ### Phase 3 — Therapist Daily View
-- [ ] "My Sessions" / "All Sessions" toggle on sessions list
-- [ ] Default to "My Sessions" for providers
-- [ ] Provider filter on session list API
+- [x] "My Sessions" / "All Sessions" toggle on sessions list
+- [x] Default to "My Sessions" for providers
+- [x] Provider filter on session list API
 
 ### Session Types (Miracle)
 - **LHR:** Specialized LHRForm (Fitzpatrick, machine/wavelength, fluence/pulse/spot/cooling)

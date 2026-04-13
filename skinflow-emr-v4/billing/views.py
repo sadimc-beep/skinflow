@@ -131,4 +131,7 @@ class EntitlementViewSet(BillingBaseViewSet):
         is_active = self.request.query_params.get('is_active')
         if is_active is not None:
             qs = qs.filter(is_active=is_active.lower() == 'true')
+        invoice_id = self.request.query_params.get('invoice')
+        if invoice_id:
+            qs = qs.filter(invoice_id=invoice_id)
         return qs

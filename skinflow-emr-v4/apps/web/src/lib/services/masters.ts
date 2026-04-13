@@ -49,5 +49,9 @@ export const mastersApi = {
             fetchApi<PaginatedResponse<ProcedureType>>('masters/procedure-types', {
                 params: searchQuery ? { search: searchQuery } : undefined
             }),
-    }
+    },
+    procedureRooms: {
+        list: () =>
+            fetchApi<PaginatedResponse<{ id: number; name: string; is_active: boolean }>>('masters/procedure-rooms'),
+    },
 };
