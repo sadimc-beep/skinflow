@@ -47,7 +47,7 @@ export interface User {
 
 export interface Provider {
     id: number;
-    user: User;
+    user_details: User;   // serialized as user_details (source='user')
     provider_type: 'DOCTOR' | 'THERAPIST';
     specialization: string;
     registration_number: string;

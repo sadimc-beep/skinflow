@@ -90,7 +90,7 @@ export function AppointmentForm({ appointment }: AppointmentFormProps) {
 
     const providerOptions = providers.map(p => ({
         value: p.id.toString(),
-        label: `Dr. ${p.user.first_name} ${p.user.last_name}${p.specialization ? ` (${p.specialization})` : ''}`,
+        label: `Dr. ${p.user_details?.first_name ?? ''} ${p.user_details?.last_name ?? ''}${p.specialization ? ` (${p.specialization})` : ''}`.trim(),
     }));
 
     return (
