@@ -48,7 +48,7 @@ export function InvoicesListClient({ initialData, patientId }: { initialData: In
     const [invoices, setInvoices] = useState(initialData);
     const [isLoading, setIsLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
-    const [statusFilter, setStatusFilter] = useState('ALL');
+    const [statusFilter, setStatusFilter] = useState('UNPAID');
 
     useEffect(() => {
         billingApi.invoices.list({ limit: 200, ...(patientId ? { patient: patientId } : {}) })

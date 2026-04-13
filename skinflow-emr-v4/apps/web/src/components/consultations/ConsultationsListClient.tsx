@@ -28,7 +28,10 @@ import {
   ChevronUp,
   Clock,
   Stethoscope,
+  AlertCircle,
+  Loader2,
 } from "lucide-react";
+import { toast } from "sonner";
 import { clinicalApi } from "@/lib/services/clinical";
 import { appointmentsApi, coreApi } from "@/lib/services/appointments";
 import { useAuth } from "@/lib/context/AuthContext";
@@ -109,6 +112,7 @@ export function ConsultationsListClient({
   const [loadingWaiting, setLoadingWaiting] = useState(true);
   const [loadingInProgress, setLoadingInProgress] = useState(true);
   const [loadingFinalized, setLoadingFinalized] = useState(true);
+  const [startingId, setStartingId] = useState<number | null>(null);
 
   // ── patientView: use passed initialData ──
   useEffect(() => {
@@ -164,6 +168,23 @@ export function ConsultationsListClient({
       .catch(console.error)
       .finally(() => setLoadingFinalized(false));
   }, [patientView]);
+
+  async function handleStartConsultation(appt: Appointment) {
+    if (startingId !== null) return;
+    setStartingId(appt.id);
+    try {
+      const consultation = await clinicalApi.consultations.create({
+        patient: appt.patient,
+        provider: appt.provider,
+        appointment: appt.id,
+      });
+      await appointmentsApi.updateStatus(appt.id, "IN_CONSULTATION");
+      router.push(`/consultations/${consultation.id}`);
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to start consultation");
+      setStartingId(null);
+    }
+  }
 
   const toggleExpand = (id: number) => {
     setExpandedIds((prev) => {
@@ -343,13 +364,31 @@ export function ConsultationsListClient({
                         </TableCell>
                         <TableCell className="text-right py-4 px-6" onClick={(e) => e.stopPropagation()}>
                           {isConsultant ? (
-                            <Button
-                              size="sm"
-                              className="bg-[#1C1917] hover:bg-[#3E3832] text-white"
-                              onClick={() => router.push(`/appointments/${appt.id}`)}
-                            >
-                              Start Consultation
-                            </Button>
+                            (() => {
+                              const feeBlocked =
+                                !appt.is_fee_paid &&
+                                appt.fee_waiver_approved !== true &&
+                                parseFloat(appt.fee || "0") > 0;
+                              return feeBlocked ? (
+                                <span className="text-sm text-[#A0978D] flex items-center justify-end gap-1.5">
+                                  <AlertCircle className="h-3.5 w-3.5 shrink-0 text-[#C4705A]" />
+                                  Fee pending — contact front desk.
+                                </span>
+                              ) : (
+                                <Button
+                                  size="sm"
+                                  className="bg-[#1C1917] hover:bg-[#3E3832] text-white"
+                                  disabled={startingId === appt.id}
+                                  onClick={() => handleStartConsultation(appt)}
+                                >
+                                  {startingId === appt.id ? (
+                                    <><Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />Starting…</>
+                                  ) : (
+                                    "Start Consultation"
+                                  )}
+                                </Button>
+                              );
+                            })()
                           ) : (
                             <Button
                               variant="outline"
