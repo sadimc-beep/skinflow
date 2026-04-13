@@ -39,12 +39,14 @@ interface SkincareTabProps {
   consultationId: number | string;
   existingPrescription?: Prescription;
   onPrescriptionUpdated: () => void;
+  readOnly?: boolean;
 }
 
 export function SkincareTab({
   consultationId,
   existingPrescription,
   onPrescriptionUpdated,
+  readOnly = false,
 }: SkincareTabProps) {
   const [prescription, setPrescription] = useState<Prescription | undefined>(
     existingPrescription,
@@ -143,7 +145,7 @@ export function SkincareTab({
         Prescribe Skincare Products
       </h3>
 
-      <Form {...form}>
+      {!readOnly && <Form {...form}>
         <form
           onSubmit={form.handleSubmit(handleAddProduct)}
           className="space-y-4"
@@ -259,7 +261,7 @@ export function SkincareTab({
             </Button>
           </div>
         </form>
-      </Form>
+      </Form>}
 
       <div className="mt-8">
         <h4 className="font-bold text-lg text-[#1C1917] mb-4">
@@ -285,15 +287,17 @@ export function SkincareTab({
                       ৳{prod.price}
                     </p>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="text-[#C4705A] hover:text-[#A85A46] hover:bg-[#C4705A]/10 h-8 w-8"
-                    disabled={deletingId === prod.id}
-                    onClick={() => handleDeleteProduct(prod.id)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                  {!readOnly && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="text-[#C4705A] hover:text-[#A85A46] hover:bg-[#C4705A]/10 h-8 w-8"
+                      disabled={deletingId === prod.id}
+                      onClick={() => handleDeleteProduct(prod.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
                 </CardContent>
               </Card>
             ))}

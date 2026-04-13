@@ -315,6 +315,13 @@ class PrescriptionMedicationViewSet(ClinicalBaseViewSet):
     queryset = PrescriptionMedication.objects.all().select_related('medicine')
     serializer_class = PrescriptionMedicationSerializer
 
+    def get_permissions(self):
+        # Removing an item from a DRAFT prescription is a write workflow, not an admin delete.
+        # clinical.write is sufficient; clinical.delete is not required.
+        if self.action == 'destroy':
+            return [HasAnyModulePermission([('clinical', 'write')])]
+        return super().get_permissions()
+
     def get_queryset(self):
         # PrescriptionMedication is scoped via its Prescription -> Consultation -> Organization chain
         org = get_current_org(self.request)
@@ -328,6 +335,11 @@ class PrescriptionProductViewSet(ClinicalBaseViewSet):
     queryset = PrescriptionProduct.objects.all()
     serializer_class = PrescriptionProductSerializer
 
+    def get_permissions(self):
+        if self.action == 'destroy':
+            return [HasAnyModulePermission([('clinical', 'write')])]
+        return super().get_permissions()
+
     def get_queryset(self):
         org = get_current_org(self.request)
         return PrescriptionProduct.objects.filter(prescription__organization=org)
@@ -338,6 +350,11 @@ class PrescriptionProductViewSet(ClinicalBaseViewSet):
 class PrescriptionProcedureViewSet(ClinicalBaseViewSet):
     queryset = PrescriptionProcedure.objects.all().select_related('procedure_type')
     serializer_class = PrescriptionProcedureSerializer
+
+    def get_permissions(self):
+        if self.action == 'destroy':
+            return [HasAnyModulePermission([('clinical', 'write')])]
+        return super().get_permissions()
 
     def get_queryset(self):
         org = get_current_org(self.request)

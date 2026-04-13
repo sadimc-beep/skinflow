@@ -47,6 +47,7 @@ interface ProceduresTabProps {
   patientId: number;
   existingPrescription?: Prescription;
   onPrescriptionUpdated: () => void;
+  readOnly?: boolean;
 }
 
 export function ProceduresTab({
@@ -54,6 +55,7 @@ export function ProceduresTab({
   patientId,
   existingPrescription,
   onPrescriptionUpdated,
+  readOnly = false,
 }: ProceduresTabProps) {
   const [prescription, setPrescription] = useState<Prescription | undefined>(
     existingPrescription,
@@ -320,7 +322,7 @@ export function ProceduresTab({
 
   return (
     <div className="space-y-8">
-      <Tabs defaultValue="immediate" className="w-full">
+      {!readOnly && <Tabs defaultValue="immediate" className="w-full">
         <TabsList className="grid w-full grid-cols-2 bg-[#E8E1D6] p-1 rounded-xl h-auto">
           <TabsTrigger
             value="immediate"
@@ -378,15 +380,17 @@ export function ProceduresTab({
                           ৳{proc.base_price}
                         </p>
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="text-[#C4705A] hover:text-[#A85A46] hover:bg-[#C4705A]/10 h-8 w-8"
-                        disabled={deletingId === proc.id}
-                        onClick={() => handleDeleteProcedure(proc.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      {!readOnly && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-[#C4705A] hover:text-[#A85A46] hover:bg-[#C4705A]/10 h-8 w-8"
+                          disabled={deletingId === proc.id}
+                          onClick={() => handleDeleteProcedure(proc.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
                     </CardContent>
                   </Card>
                 ))}
@@ -464,7 +468,7 @@ export function ProceduresTab({
             </form>
           </Form>
         </TabsContent>
-      </Tabs>
+      </Tabs>}
 
       {/* ── EXISTING TREATMENT PLANS ── */}
       {/* ── EXISTING TREATMENT PLANS ── */}
@@ -544,26 +548,28 @@ export function ProceduresTab({
                         )}
                       </div>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="text-[#C4705A] hover:text-[#A85A46] hover:bg-[#C4705A]/10 shrink-0 h-9 w-9 rounded-lg"
-                      disabled={deletingPlanId === plan.id}
-                      onClick={async () => {
-                        setDeletingPlanId(plan.id);
-                        try {
-                          await clinicalApi.treatmentPlans.deleteItem(plan.id);
-                          toast.success("Treatment plan removed.");
-                          await fetchTreatmentPlans();
-                        } catch {
-                          toast.error("Failed to remove plan.");
-                        } finally {
-                          setDeletingPlanId(null);
-                        }
-                      }}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    {!readOnly && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-[#C4705A] hover:text-[#A85A46] hover:bg-[#C4705A]/10 shrink-0 h-9 w-9 rounded-lg"
+                        disabled={deletingPlanId === plan.id}
+                        onClick={async () => {
+                          setDeletingPlanId(plan.id);
+                          try {
+                            await clinicalApi.treatmentPlans.deleteItem(plan.id);
+                            toast.success("Treatment plan removed.");
+                            await fetchTreatmentPlans();
+                          } catch {
+                            toast.error("Failed to remove plan.");
+                          } finally {
+                            setDeletingPlanId(null);
+                          }
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
                   </div>
                 </CardContent>
               </Card>

@@ -103,6 +103,7 @@ interface RxTabProps {
   consultationId: number | string;
   existingPrescription?: Prescription;
   onPrescriptionUpdated: () => void;
+  readOnly?: boolean;
 }
 
 type MedicineSearchResult =
@@ -125,6 +126,7 @@ export function RxTab({
   consultationId,
   existingPrescription,
   onPrescriptionUpdated,
+  readOnly = false,
 }: RxTabProps) {
   const [prescription, setPrescription] = useState<Prescription | undefined>(
     existingPrescription,
@@ -339,7 +341,7 @@ export function RxTab({
         </div>
       )}
 
-      <Form {...form}>
+      {!readOnly && <Form {...form}>
         <form onSubmit={form.handleSubmit(handleAddMedication)} className="space-y-4">
 
           {/* Row 1: Medicine search (full width) */}
@@ -557,7 +559,7 @@ export function RxTab({
             Add Medication Line
           </Button>
         </form>
-      </Form>
+      </Form>}
 
       {/* Current medications list */}
       <div className="mt-8">
@@ -579,15 +581,17 @@ export function RxTab({
                       <p className="text-sm italic text-[#C4A882]">Note: {med.instructions}</p>
                     )}
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="text-[#C4705A] hover:text-[#A85A46] hover:bg-[#C4705A]/10 h-8 w-8 shrink-0 mt-0.5"
-                    disabled={deletingId === med.id}
-                    onClick={() => handleDeleteMedication(med.id)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                  {!readOnly && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="text-[#C4705A] hover:text-[#A85A46] hover:bg-[#C4705A]/10 h-8 w-8 shrink-0 mt-0.5"
+                      disabled={deletingId === med.id}
+                      onClick={() => handleDeleteMedication(med.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
                 </CardContent>
               </Card>
             ))}

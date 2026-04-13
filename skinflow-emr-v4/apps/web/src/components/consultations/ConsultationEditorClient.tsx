@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { clinicalApi } from "@/lib/services/clinical";
+import { useAuth } from "@/lib/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -47,6 +48,7 @@ import {
   AlertTriangle,
   Receipt,
   Download,
+  EyeOff,
 } from "lucide-react";
 import type {
   Consultation,
@@ -69,11 +71,26 @@ const STATUS_COLORS: Record<string, string> = {
   CANCELLED: "bg-[#C4705A]/10 text-[#C4705A] border-[#C4705A]/30",
 };
 
+const DOCTOR_KEYWORDS = ["doctor", "physician", "consultant"];
+
 export function ConsultationEditorClient({
   consultation,
   intake,
 }: EditorProps) {
   const router = useRouter();
+  const { user } = useAuth();
+
+  // Derive whether this user can edit consultation records.
+  // Matches the backend IsDoctorOrOrgAdmin permission class.
+  const canEdit =
+    !user ||
+    user.is_superuser ||
+    user.is_org_admin ||
+    DOCTOR_KEYWORDS.some((kw) =>
+      user.role?.name?.toLowerCase().includes(kw),
+    );
+  const isReadOnly = !canEdit;
+
   const [isSaving, setIsSaving] = useState(false);
   const [isFinalizing, setIsFinalizing] = useState(false);
   const [finalizeModalOpen, setFinalizeModalOpen] = useState(false);
@@ -238,6 +255,19 @@ export function ConsultationEditorClient({
         </div>
       )}
 
+      {/* ── Role read-only notice ── */}
+      {isReadOnly && !isFinalized && (
+        <div className="rounded-2xl bg-[#D9D0C5]/40 border border-[#D9D0C5] p-5 text-base text-[#78706A] flex items-center gap-3 shadow-sm">
+          <div className="p-2 bg-white rounded-full shadow-sm shrink-0">
+            <EyeOff className="h-5 w-5 text-[#A0978D]" />
+          </div>
+          <p>
+            You have <strong className="font-bold text-[#1C1917]">read-only access</strong> to this consultation.
+            Clinical notes and prescriptions can only be edited by the attending doctor.
+          </p>
+        </div>
+      )}
+
       {/* ── Patient Medical Alerts ── */}
       {(liveConsultation.patient_details as any)?.has_known_allergies && (
         <div className="rounded-xl border border-[#C4705A]/30 bg-[#C4705A]/5 p-4 text-base text-[#C4705A] flex items-center gap-3 shadow-sm">
@@ -332,7 +362,7 @@ export function ConsultationEditorClient({
                             <Textarea
                               placeholder="Patient presents with..."
                               className="h-32 resize-none bg-[#F7F3ED] border-[#D9D0C5] text-[#1C1917] placeholder:text-[#A0978D] focus-visible:ring-[#C4A882] text-base"
-                              disabled={isFinalized}
+                              disabled={isFinalized || isReadOnly}
                               {...field}
                             />
                           </FormControl>
@@ -352,7 +382,7 @@ export function ConsultationEditorClient({
                             <Textarea
                               placeholder="Condition started 3 days ago..."
                               className="h-32 resize-none bg-[#F7F3ED] border-[#D9D0C5] text-[#1C1917] placeholder:text-[#A0978D] focus-visible:ring-[#C4A882] text-base"
-                              disabled={isFinalized}
+                              disabled={isFinalized || isReadOnly}
                               {...field}
                             />
                           </FormControl>
@@ -373,7 +403,7 @@ export function ConsultationEditorClient({
                           <Textarea
                             placeholder="Objective clinical observations..."
                             className="h-28 resize-none bg-[#F7F3ED] border-[#D9D0C5] text-[#1C1917] placeholder:text-[#A0978D] focus-visible:ring-[#C4A882] text-base"
-                            disabled={isFinalized}
+                            disabled={isFinalized || isReadOnly}
                             {...field}
                           />
                         </FormControl>
@@ -393,7 +423,7 @@ export function ConsultationEditorClient({
                           <Textarea
                             placeholder="Diagnosis and plan..."
                             className="h-28 resize-none bg-[#F7F3ED] border-[#D9D0C5] text-[#1C1917] placeholder:text-[#A0978D] focus-visible:ring-[#C4A882] text-base"
-                            disabled={isFinalized}
+                            disabled={isFinalized || isReadOnly}
                             {...field}
                           />
                         </FormControl>
@@ -401,7 +431,7 @@ export function ConsultationEditorClient({
                       </FormItem>
                     )}
                   />
-                  {!isFinalized && (
+                  {!isFinalized && !isReadOnly && (
                     <div className="flex justify-end pt-4 border-t border-[#E8E1D6]">
                       <Button
                         type="submit"
@@ -498,12 +528,14 @@ export function ConsultationEditorClient({
                 consultationId={liveConsultation.id}
                 existingPrescription={liveConsultation.prescription}
                 onPrescriptionUpdated={refreshConsultation}
+                readOnly={isReadOnly}
               />
               <hr className="border-[#D9D0C5]" />
               <SkincareTab
                 consultationId={liveConsultation.id}
                 existingPrescription={liveConsultation.prescription}
                 onPrescriptionUpdated={refreshConsultation}
+                readOnly={isReadOnly}
               />
             </CardContent>
           </Card>
@@ -527,6 +559,7 @@ export function ConsultationEditorClient({
                 patientId={liveConsultation.patient}
                 existingPrescription={liveConsultation.prescription}
                 onPrescriptionUpdated={refreshConsultation}
+                readOnly={isReadOnly}
               />
             </CardContent>
           </Card>
@@ -534,7 +567,7 @@ export function ConsultationEditorClient({
       </Tabs>
 
       {/* ── STICKY FINALIZE BAR ── */}
-      {!isFinalized && (
+      {!isFinalized && !isReadOnly && (
         <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-[#D9D0C5] bg-[#F7F3ED]/95 backdrop-blur-md shadow-[0_-4px_20px_-10px_rgba(0,0,0,0.1)]">
           <div className="max-w-7xl mx-auto px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="text-base text-[#78706A]">
