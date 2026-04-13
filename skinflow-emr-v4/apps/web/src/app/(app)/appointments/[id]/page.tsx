@@ -11,6 +11,7 @@ import { ChevronRight, Loader2, Pencil } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import type { Appointment } from '@/types/models';
+import { useAuth } from '@/lib/context/AuthContext';
 
 const STATUS_LABELS: Record<string, string> = {
     SCHEDULED: 'Scheduled', ARRIVED: 'Arrived', READY_FOR_CONSULT: 'Ready for Consult',
@@ -51,6 +52,7 @@ function StatusBadge({ status, waiverPending, waiverDenied }: { status: string; 
 export default function AppointmentDetailPage() {
     const { id } = useParams<{ id: string }>();
     const router = useRouter();
+    const { hasPermission } = useAuth();
     const [appt, setAppt] = useState<Appointment | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [showArrivedModal, setShowArrivedModal] = useState(false);
@@ -216,25 +218,31 @@ export default function AppointmentDetailPage() {
                     </Button>
                 )}
 
-                {/* ARRIVED + waiver pending → consultant approve/deny */}
+                {/* ARRIVED + waiver pending → consultant approve/deny (or awaiting badge for front desk) */}
                 {appt.status === 'ARRIVED' && waiverPending && (
-                    <>
-                        <Button
-                            onClick={() => handleWaiverDecision(true)}
-                            disabled={!!actionLoading}
-                            className="bg-green-700 hover:bg-green-800 text-white"
-                        >
-                            {actionLoading === 'approve' ? 'Approving…' : 'Approve Waiver'}
-                        </Button>
-                        <Button
-                            variant="outline"
-                            onClick={() => handleWaiverDecision(false)}
-                            disabled={!!actionLoading}
-                            className="border-red-300 text-red-700 hover:bg-red-50"
-                        >
-                            {actionLoading === 'deny' ? 'Denying…' : 'Deny Waiver'}
-                        </Button>
-                    </>
+                    hasPermission('clinical.write') ? (
+                        <>
+                            <Button
+                                onClick={() => handleWaiverDecision(true)}
+                                disabled={!!actionLoading}
+                                className="bg-green-700 hover:bg-green-800 text-white"
+                            >
+                                {actionLoading === 'approve' ? 'Approving…' : 'Approve Waiver'}
+                            </Button>
+                            <Button
+                                variant="outline"
+                                onClick={() => handleWaiverDecision(false)}
+                                disabled={!!actionLoading}
+                                className="border-red-300 text-red-700 hover:bg-red-50"
+                            >
+                                {actionLoading === 'deny' ? 'Denying…' : 'Deny Waiver'}
+                            </Button>
+                        </>
+                    ) : (
+                        <span className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800">
+                            Awaiting Consultant Approval
+                        </span>
+                    )
                 )}
 
                 {/* ARRIVED + waiver denied → front desk re-check-in with normal fee */}
@@ -244,9 +252,9 @@ export default function AppointmentDetailPage() {
                     </Button>
                 )}
 
-                {/* ARRIVED (normal) → clinical workflow */}
+                {/* ARRIVED (normal) → clinical intake/vitals */}
                 {appt.status === 'ARRIVED' && !waiverPending && !waiverDenied && (
-                    <Button variant="outline" onClick={() => router.push('/clinical')}>
+                    <Button variant="outline" onClick={() => router.push(`/appointments/${appt.id}/intake`)}>
                         Record Vitals
                     </Button>
                 )}

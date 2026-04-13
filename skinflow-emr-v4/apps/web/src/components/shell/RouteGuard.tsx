@@ -12,7 +12,7 @@ const routePermissions: Record<string, string> = {
     '/consultations': 'clinical.read',
     '/sessions': 'clinical.read',
     '/finance': 'accounting.read',
-    '/billing': 'accounting.read',
+    '/billing': 'billing.read',
     '/accounting': 'accounting.read',
     '/inventory': 'inventory.read',
     '/store': 'inventory.read',
