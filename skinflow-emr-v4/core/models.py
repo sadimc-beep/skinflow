@@ -61,6 +61,7 @@ class Provider(TimeStampedModel):
     specialization = models.CharField(max_length=255, blank=True)
     registration_number = models.CharField(max_length=100, blank=True)
     max_discount_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=0.00)
+    default_consultation_fee = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
 
     def __str__(self):
         return f"{self.user.get_full_name()} ({self.get_provider_type_display()})"

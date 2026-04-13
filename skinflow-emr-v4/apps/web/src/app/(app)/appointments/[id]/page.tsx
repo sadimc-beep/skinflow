@@ -5,7 +5,6 @@ import { useParams, useRouter } from 'next/navigation';
 import { format, parseISO } from 'date-fns';
 import { appointmentsApi } from '@/lib/services/appointments';
 import { ArrivedModal } from '@/components/appointments/ArrivedModal';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ChevronRight, Loader2, Pencil } from 'lucide-react';
@@ -19,7 +18,7 @@ const STATUS_LABELS: Record<string, string> = {
     CANCELLED: 'Cancelled', NO_SHOW: 'No Show',
 };
 
-function StatusBadge({ status }: { status: string }) {
+function StatusBadge({ status, waiverPending, waiverDenied }: { status: string; waiverPending?: boolean; waiverDenied?: boolean }) {
     const variants: Record<string, string> = {
         SCHEDULED: 'bg-blue-100 text-blue-800',
         ARRIVED: 'bg-yellow-100 text-yellow-800',
@@ -29,9 +28,22 @@ function StatusBadge({ status }: { status: string }) {
         CANCELLED: 'bg-red-100 text-red-800',
         NO_SHOW: 'bg-gray-100 text-gray-600',
     };
+
+    const label = waiverPending
+        ? 'Waiver Pending'
+        : waiverDenied
+        ? 'Waiver Denied'
+        : (STATUS_LABELS[status] ?? status);
+
+    const cls = waiverPending
+        ? 'bg-amber-100 text-amber-800'
+        : waiverDenied
+        ? 'bg-orange-100 text-orange-800'
+        : (variants[status] ?? 'bg-gray-100 text-gray-600');
+
     return (
-        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${variants[status] ?? 'bg-gray-100 text-gray-600'}`}>
-            {STATUS_LABELS[status] ?? status}
+        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${cls}`}>
+            {label}
         </span>
     );
 }
@@ -42,6 +54,7 @@ export default function AppointmentDetailPage() {
     const [appt, setAppt] = useState<Appointment | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [showArrivedModal, setShowArrivedModal] = useState(false);
+    const [actionLoading, setActionLoading] = useState<string | null>(null);
 
     useEffect(() => {
         appointmentsApi.get(id)
@@ -50,15 +63,45 @@ export default function AppointmentDetailPage() {
             .finally(() => setIsLoading(false));
     }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    const handleArrivedSuccess = async (apptId: number, fee: number) => {
+    const handleCheckIn = async (apptId: number, fee: number) => {
         try {
             const res = await appointmentsApi.checkIn(apptId, fee);
-            setAppt(prev => prev ? { ...prev, status: 'ARRIVED' } : prev);
-            setShowArrivedModal(false);
-            toast.success('Patient marked as arrived');
+            setAppt(prev => prev ? { ...prev, status: 'ARRIVED', fee_waiver_requested: false, fee_waiver_approved: null } : prev);
+            toast.success('Patient checked in');
             if (res.invoice_id) router.push(`/billing/${res.invoice_id}`);
         } catch (e: any) {
-            toast.error(e.message || 'Failed to mark arrived');
+            toast.error(e.message || 'Failed to check in');
+            throw e;
+        }
+    };
+
+    const handleRequestWaiver = async (apptId: number, fee: number, reason: string) => {
+        try {
+            await appointmentsApi.requestWaiver(apptId, fee, reason);
+            setAppt(prev => prev ? { ...prev, status: 'ARRIVED', fee_waiver_requested: true, fee_waiver_approved: null } : prev);
+            toast.success('Fee waiver request submitted');
+        } catch (e: any) {
+            toast.error(e.message || 'Failed to submit waiver request');
+            throw e;
+        }
+    };
+
+    const handleWaiverDecision = async (approved: boolean) => {
+        if (!appt) return;
+        const key = approved ? 'approve' : 'deny';
+        setActionLoading(key);
+        try {
+            await appointmentsApi.approveWaiver(appt.id, approved);
+            setAppt(prev => prev ? {
+                ...prev,
+                fee_waiver_approved: approved,
+                fee: approved ? '0.00' : prev.fee,
+            } : prev);
+            toast.success(approved ? 'Fee waiver approved' : 'Fee waiver denied — front desk can now proceed with check-in');
+        } catch (e: any) {
+            toast.error(e.message || 'Failed to process waiver decision');
+        } finally {
+            setActionLoading(null);
         }
     };
 
@@ -73,6 +116,11 @@ export default function AppointmentDetailPage() {
     if (!appt) return null;
 
     const patientName = `${appt.patient_details?.first_name ?? ''} ${appt.patient_details?.last_name ?? ''}`.trim() || '—';
+    const defaultFee = parseFloat(appt.provider_details?.default_consultation_fee ?? '0') || 0;
+
+    const waiverPending = appt.fee_waiver_requested && appt.fee_waiver_approved === null;
+    const waiverDenied = appt.fee_waiver_requested && appt.fee_waiver_approved === false;
+    const waiverApproved = appt.fee_waiver_requested && appt.fee_waiver_approved === true;
 
     return (
         <div className="max-w-2xl mx-auto space-y-6">
@@ -92,7 +140,7 @@ export default function AppointmentDetailPage() {
                     </p>
                 </div>
                 <div className="flex items-center gap-2">
-                    <StatusBadge status={appt.status} />
+                    <StatusBadge status={appt.status} waiverPending={waiverPending} waiverDenied={waiverDenied} />
                     <Button
                         variant="outline"
                         size="sm"
@@ -136,7 +184,7 @@ export default function AppointmentDetailPage() {
                     </div>
                     <div>
                         <p className="text-muted-foreground text-xs font-medium uppercase tracking-wide mb-0.5">Status</p>
-                        <StatusBadge status={appt.status} />
+                        <StatusBadge status={appt.status} waiverPending={waiverPending} waiverDenied={waiverDenied} />
                     </div>
                     {appt.notes && (
                         <div className="col-span-2">
@@ -144,16 +192,86 @@ export default function AppointmentDetailPage() {
                             <p className="text-[#1C1917]">{appt.notes}</p>
                         </div>
                     )}
+                    {waiverApproved && (
+                        <div className="col-span-2">
+                            <p className="text-muted-foreground text-xs font-medium uppercase tracking-wide mb-0.5">Fee</p>
+                            <p className="text-green-700 font-semibold text-sm">Waived</p>
+                        </div>
+                    )}
+                    {appt.fee_waiver_reason && (
+                        <div className="col-span-2">
+                            <p className="text-muted-foreground text-xs font-medium uppercase tracking-wide mb-0.5">Waiver Reason</p>
+                            <p className="text-[#1C1917] text-sm">{appt.fee_waiver_reason}</p>
+                        </div>
+                    )}
                 </CardContent>
             </Card>
 
-            {/* Actions */}
-            <div className="flex gap-3">
+            {/* Workflow actions */}
+            <div className="flex flex-wrap gap-3">
+                {/* SCHEDULED → normal check-in */}
                 {appt.status === 'SCHEDULED' && (
                     <Button onClick={() => setShowArrivedModal(true)}>
                         Mark as Arrived
                     </Button>
                 )}
+
+                {/* ARRIVED + waiver pending → consultant approve/deny */}
+                {appt.status === 'ARRIVED' && waiverPending && (
+                    <>
+                        <Button
+                            onClick={() => handleWaiverDecision(true)}
+                            disabled={!!actionLoading}
+                            className="bg-green-700 hover:bg-green-800 text-white"
+                        >
+                            {actionLoading === 'approve' ? 'Approving…' : 'Approve Waiver'}
+                        </Button>
+                        <Button
+                            variant="outline"
+                            onClick={() => handleWaiverDecision(false)}
+                            disabled={!!actionLoading}
+                            className="border-red-300 text-red-700 hover:bg-red-50"
+                        >
+                            {actionLoading === 'deny' ? 'Denying…' : 'Deny Waiver'}
+                        </Button>
+                    </>
+                )}
+
+                {/* ARRIVED + waiver denied → front desk re-check-in with normal fee */}
+                {appt.status === 'ARRIVED' && waiverDenied && (
+                    <Button onClick={() => setShowArrivedModal(true)}>
+                        Check In (Charge Fee)
+                    </Button>
+                )}
+
+                {/* ARRIVED (normal) → clinical workflow */}
+                {appt.status === 'ARRIVED' && !waiverPending && !waiverDenied && (
+                    <Button variant="outline" onClick={() => router.push('/clinical')}>
+                        Record Vitals
+                    </Button>
+                )}
+
+                {/* READY_FOR_CONSULT → start consultation */}
+                {appt.status === 'READY_FOR_CONSULT' && (
+                    <Button onClick={() => router.push('/consultations')}>
+                        Start Consultation
+                    </Button>
+                )}
+
+                {/* IN_CONSULTATION → view consultation */}
+                {appt.status === 'IN_CONSULTATION' && (
+                    <Button variant="outline" onClick={() => router.push('/consultations')}>
+                        View Consultation
+                    </Button>
+                )}
+
+                {/* COMPLETED → view invoice */}
+                {appt.status === 'COMPLETED' && (
+                    <Button variant="outline" onClick={() => router.push('/billing')}>
+                        View Invoice
+                    </Button>
+                )}
+
                 <Button variant="outline" onClick={() => router.push('/appointments')}>
                     Back to Calendar
                 </Button>
@@ -162,8 +280,10 @@ export default function AppointmentDetailPage() {
             <ArrivedModal
                 appointmentId={showArrivedModal ? appt.id : null}
                 open={showArrivedModal}
+                defaultFee={defaultFee}
                 onClose={() => setShowArrivedModal(false)}
-                onSuccess={handleArrivedSuccess}
+                onCheckIn={handleCheckIn}
+                onRequestWaiver={handleRequestWaiver}
             />
         </div>
     );

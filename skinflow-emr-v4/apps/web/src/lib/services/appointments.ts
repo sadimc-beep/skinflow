@@ -38,4 +38,16 @@ export const appointmentsApi = {
             method: 'POST',
             body: JSON.stringify({ fee }),
         }),
+
+    requestWaiver: (id: number | string, fee: number, reason: string) =>
+        fetchApi<{ status: string; waiver_pending: boolean }>(`clinical/appointments/${id}/check_in`, {
+            method: 'POST',
+            body: JSON.stringify({ fee, fee_waiver_requested: true, fee_waiver_reason: reason }),
+        }),
+
+    approveWaiver: (id: number | string, approved: boolean) =>
+        fetchApi<{ status: string }>(`clinical/appointments/${id}/approve_waiver`, {
+            method: 'POST',
+            body: JSON.stringify({ approved }),
+        }),
 };

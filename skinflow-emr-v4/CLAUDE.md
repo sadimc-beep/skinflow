@@ -9,6 +9,9 @@
 - Never regenerate docs from scratch — only update changed sections
 - Default to Sonnet model for daily work unless I say otherwise
 - When I say "explain your plan" or "read first", always explain your approach and wait for explicit approval before writing or modifying any code. Do not proceed until I say "go ahead" or "approved".
+- Never write or modify any code until I say "go ahead" or "approved" after seeing your plan.
+- Never push to git without my explicit approval.
+- After completing work, show a summary and ask "Ready to commit and push?" — wait for confirmation before running git commit or git push.
 
 ## Permission Policy
 - Auto-approve: file reads, file writes, file edits, 
@@ -87,6 +90,7 @@ skinflow-emr-v4/
 - **API Client**: `lib/api.ts` with `fetchApi<T>()` helper, JWT from localStorage
 - **Components**: shadcn/ui pattern in `components/ui/`, app-specific in `components/sf/`
 - **Server Components**: Default, use `'use client'` only when needed
+- **API-loaded Dropdowns**: All dropdowns that load from API data (patients, providers, procedures, products, medicines, etc.) must use a searchable combobox pattern (cmdk or similar). Search must match anywhere in the string, not just the start. Use the existing cmdk dependency. This applies globally across the entire app.
 
 ### Naming Conventions
 - Django models: PascalCase (e.g., `ProcedureSession`)

@@ -157,6 +157,7 @@
 7. **Photo Storage**: URL-based, no actual file handling
 8. ~~**Multi-Tenancy Fallback**~~: Resolved — `get_current_org()` now raises `AuthenticationFailed` instead of falling back to first org; all core views require `IsAuthenticated`; global DRF default changed to `IsAuthenticated`
 9. ~~**Duplicate patient phone error**~~: Resolved — `PatientViewSet.perform_create` now catches `IntegrityError` on `(organization, phone_primary)` and returns HTTP 400 with `"A patient with this phone number already exists."`
+10. **AppointmentsListClient patientView bug**: When used inside patient detail page with `patientView=true`, the `useEffect` fetches all appointments by selected day instead of filtering by patient, overwriting the patient-specific `initialData`. Needs a `patientId` prop wired similarly to `InvoicesListClient`.
 
 ---
 

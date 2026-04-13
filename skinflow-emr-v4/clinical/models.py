@@ -20,6 +20,9 @@ class Appointment(TimeStampedModel):
         
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.SCHEDULED)
     fee = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    fee_waiver_requested = models.BooleanField(default=False)
+    fee_waiver_reason = models.TextField(blank=True)
+    fee_waiver_approved = models.BooleanField(null=True, blank=True)
 
     class Meta:
         unique_together = [['organization', 'provider', 'date_time']]

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { billingApi } from '@/lib/services/billing';
 import type { Invoice } from '@/types/models';
 import { InvoiceDetailClient } from '@/components/billing/InvoiceDetailClient';
@@ -46,6 +47,14 @@ export default function InvoicePage() {
                         {invoice.patient_details?.first_name} {invoice.patient_details?.last_name} • {new Date(invoice.created_at).toLocaleDateString()}
                     </p>
                 </div>
+                {invoice.appointment && (
+                    <Link
+                        href={`/appointments/${invoice.appointment}`}
+                        className="text-sm text-muted-foreground hover:text-foreground transition-colors underline underline-offset-2"
+                    >
+                        ← Back to Appointment
+                    </Link>
+                )}
             </div>
 
             <InvoiceDetailClient initialData={invoice} />

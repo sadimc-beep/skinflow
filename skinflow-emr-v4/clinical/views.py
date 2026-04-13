@@ -46,10 +46,18 @@ class AppointmentViewSet(ClinicalBaseViewSet):
     def check_in(self, request, pk=None):
         appointment = self.get_object()
         fee = request.data.get('fee', 0)
+        fee_waiver_requested = request.data.get('fee_waiver_requested', False)
+        fee_waiver_reason = request.data.get('fee_waiver_reason', '')
 
-        if appointment.status != Appointment.Status.SCHEDULED:
+        # Allow check-in if SCHEDULED, or if ARRIVED with a denied waiver (re-check-in)
+        waiver_denied = (
+            appointment.status == Appointment.Status.ARRIVED
+            and appointment.fee_waiver_requested
+            and appointment.fee_waiver_approved is False
+        )
+        if appointment.status != Appointment.Status.SCHEDULED and not waiver_denied:
             return Response(
-                {'error': 'Only scheduled appointments can be checked in.'},
+                {'error': 'This appointment cannot be checked in.'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -62,8 +70,21 @@ class AppointmentViewSet(ClinicalBaseViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        if fee_waiver_requested:
+            appointment.status = Appointment.Status.ARRIVED
+            appointment.fee = fee_amount  # Store proposed fee for reference
+            appointment.fee_waiver_requested = True
+            appointment.fee_waiver_reason = fee_waiver_reason
+            appointment.fee_waiver_approved = None
+            appointment.save()
+            return Response({'status': 'arrived', 'waiver_pending': True})
+
+        # Normal check-in (or re-check-in after waiver denied)
         appointment.status = Appointment.Status.ARRIVED
         appointment.fee = fee_amount
+        appointment.fee_waiver_requested = False
+        appointment.fee_waiver_reason = ''
+        appointment.fee_waiver_approved = None
         appointment.save()
 
         if fee_amount > 0:
@@ -72,6 +93,33 @@ class AppointmentViewSet(ClinicalBaseViewSet):
             return Response({'status': 'arrived', 'invoice_id': invoice.id})
 
         return Response({'status': 'arrived'})
+
+    @action(detail=True, methods=['post'])
+    def approve_waiver(self, request, pk=None):
+        appointment = self.get_object()
+
+        if not appointment.fee_waiver_requested or appointment.fee_waiver_approved is not None:
+            return Response(
+                {'error': 'No pending fee waiver for this appointment.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        approved = request.data.get('approved')
+        if approved is None:
+            return Response(
+                {'error': '"approved" field is required (true or false).'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if approved:
+            appointment.fee_waiver_approved = True
+            appointment.fee = 0
+            appointment.save()
+            return Response({'status': 'waiver_approved'})
+        else:
+            appointment.fee_waiver_approved = False
+            appointment.save()
+            return Response({'status': 'waiver_denied'})
 
 class ConsultationViewSet(ClinicalBaseViewSet):
     queryset = Consultation.objects.all().select_related('patient', 'provider__user', 'prescription')

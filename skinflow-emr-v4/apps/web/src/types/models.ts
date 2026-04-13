@@ -52,6 +52,7 @@ export interface Provider {
     specialization: string;
     registration_number: string;
     max_discount_percentage: string;     // Django DecimalField rendered as string
+    default_consultation_fee: string;   // Django DecimalField rendered as string
     is_active: boolean;
 }
 
@@ -62,10 +63,14 @@ export interface Appointment {
     patient: number;                       // Foreign Key ID
     patient_details?: Pick<Patient, 'id' | 'first_name' | 'last_name' | 'phone_primary'>; // If the backend serializer nests it
     provider: number;                      // Foreign Key ID
-    provider_details?: Pick<Provider, 'id'> & { name: string };
+    provider_details?: Pick<Provider, 'id' | 'default_consultation_fee'> & { name: string };
     date_time: string;                     // ISO datetime
     end_time?: string;                     // ISO datetime (optional)
     status: AppointmentStatus;
+    fee: string;                           // Django DecimalField rendered as string
+    fee_waiver_requested: boolean;
+    fee_waiver_reason: string;
+    fee_waiver_approved: boolean | null;   // null = pending, true = approved, false = denied
     is_fee_paid?: boolean;
     notes: string;
     created_at: string;

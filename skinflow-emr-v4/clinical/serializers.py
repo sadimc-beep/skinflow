@@ -11,7 +11,7 @@ class ProviderSimpleSerializer(serializers.ModelSerializer):
     name = serializers.CharField(source='user.get_full_name', read_only=True)
     class Meta:
         model = Provider
-        fields = ['id', 'name', 'provider_type', 'specialization']
+        fields = ['id', 'name', 'provider_type', 'specialization', 'default_consultation_fee']
 
 class AppointmentSerializer(serializers.ModelSerializer):
     patient_details = PatientSerializer(source='patient', read_only=True)

@@ -213,7 +213,7 @@ export function AppointmentsListClient({ initialData, patientView = false }: Pro
     const [appointments, setAppointments] = useState(initialData);
     const [isLoading, setIsLoading] = useState(false);
     const [activeTab, setActiveTab] = useState<'future' | 'past'>('future');
-    const [arrivedApptId, setArrivedApptId] = useState<number | null>(null);
+    const [arrivedAppt, setArrivedAppt] = useState<Appointment | null>(null);
     const [intakeApptId, setIntakeApptId] = useState<number | null>(null);
 
     // Load appointments for the displayed week range
@@ -238,15 +238,28 @@ export function AppointmentsListClient({ initialData, patientView = false }: Pro
         }
     };
 
-    const handleArrivedSuccess = async (id: number, fee: number) => {
+    const handleCheckIn = async (id: number, fee: number) => {
         try {
             const res = await appointmentsApi.checkIn(id, fee);
             setAppointments(prev => prev.map(a => a.id === id ? { ...a, status: 'ARRIVED' } : a));
-            toast.success("Patient Marked Arrived");
-            setArrivedApptId(null);
+            toast.success("Patient checked in");
+            setArrivedAppt(null);
             if (res.invoice_id) router.push(`/billing/${res.invoice_id}`);
         } catch (e: any) {
-            toast.error(e.message || "Failed to mark arrived");
+            toast.error(e.message || "Failed to check in");
+            throw e;
+        }
+    };
+
+    const handleRequestWaiver = async (id: number, fee: number, reason: string) => {
+        try {
+            await appointmentsApi.requestWaiver(id, fee, reason);
+            setAppointments(prev => prev.map(a => a.id === id ? { ...a, status: 'ARRIVED', fee_waiver_requested: true, fee_waiver_approved: null } : a));
+            toast.success("Fee waiver request submitted");
+            setArrivedAppt(null);
+        } catch (e: any) {
+            toast.error(e.message || "Failed to submit waiver request");
+            throw e;
         }
     };
 
@@ -351,10 +364,12 @@ export function AppointmentsListClient({ initialData, patientView = false }: Pro
             )}
 
             <ArrivedModal
-                appointmentId={arrivedApptId}
-                open={arrivedApptId !== null}
-                onClose={() => setArrivedApptId(null)}
-                onSuccess={handleArrivedSuccess}
+                appointmentId={arrivedAppt?.id ?? null}
+                open={arrivedAppt !== null}
+                defaultFee={parseFloat(arrivedAppt?.provider_details?.default_consultation_fee ?? '0') || 0}
+                onClose={() => setArrivedAppt(null)}
+                onCheckIn={handleCheckIn}
+                onRequestWaiver={handleRequestWaiver}
             />
             <IntakeModal
                 appointmentId={intakeApptId}
