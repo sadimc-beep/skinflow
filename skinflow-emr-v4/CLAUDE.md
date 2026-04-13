@@ -5,13 +5,13 @@
 - Always read CLAUDE.md at session start, nothing else
 - Before reading source files, check docs/ first
 - When I say "work on [feature]", read only files relevant to that feature — ask me to confirm scope if unsure
-- After completing any feature, update docs/STATUS.md
-- Never regenerate docs from scratch — only update changed sections
+- After completing each independent task (feature, bugfix, or refactoring), update the relevant docs (STATUS.md, ARCHITECTURE.md, DECISIONS.md) to reflect what changed. Do this as part of the same commit.
+- After completing work, show a summary and ask "Ready to commit and push?" — wait for confirmation before running git commit or git push. After pushing, remind me to run /clear to free up context for the next task.
+- When updating docs, only update changed sections — never regenerate from scratch.
 - Default to Sonnet model for daily work unless I say otherwise
 - When I say "explain your plan" or "read first", always explain your approach and wait for explicit approval before writing or modifying any code. Do not proceed until I say "go ahead" or "approved".
 - Never write or modify any code until I say "go ahead" or "approved" after seeing your plan.
 - Never push to git without my explicit approval.
-- After completing work, show a summary and ask "Ready to commit and push?" — wait for confirmation before running git commit or git push.
 
 ## Permission Policy
 - Auto-approve: file reads, file writes, file edits, 
