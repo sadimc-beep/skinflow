@@ -83,10 +83,11 @@ class Prescription(TimeStampedModel):
 class PrescriptionMedication(TimeStampedModel):
     prescription = models.ForeignKey(Prescription, on_delete=models.CASCADE, related_name='medications')
     medicine = models.ForeignKey(MedicineMaster, on_delete=models.CASCADE)
-    dose = models.CharField(max_length=100)
+    dose = models.CharField(max_length=100, blank=True, default='')
     route = models.CharField(max_length=100)
     frequency = models.CharField(max_length=100)
     duration = models.CharField(max_length=100)
+    recommendations = models.CharField(max_length=255, blank=True, default='')
     instructions = models.TextField(blank=True)
 
 class PrescriptionProcedure(TimeStampedModel):

@@ -110,6 +110,7 @@ export interface PrescriptionMedication {
     route: string;
     frequency: string;
     duration: string;
+    recommendations: string;
     instructions: string;
 }
 

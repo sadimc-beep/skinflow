@@ -436,12 +436,8 @@ export function ConsultationEditorClient({
                       unit: "",
                     },
                     { label: "Pulse", value: intake.pulse || "—", unit: "bpm" },
-                    {
-                      label: "Weight",
-                      value: intake.weight || "—",
-                      unit: "kg",
-                    },
-                    { label: "BMI", value: intake.bmi || "—", unit: "" },
+                    { label: "Weight", value: intake.weight || "—", unit: "kg" },
+                    { label: "Height", value: intake.height || "—", unit: "cm" },
                   ].map((v) => (
                     <div
                       key={v.label}

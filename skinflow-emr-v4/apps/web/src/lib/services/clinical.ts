@@ -56,7 +56,8 @@ export const clinicalApi = {
 
     intake: {
         getByAppointment: (appointmentId: number | string) =>
-            fetchApi<ClinicalIntake[]>(`clinical/intakes`, { params: { appointment: appointmentId } }),
+            fetchApi<PaginatedResponse<ClinicalIntake>>(`clinical/intakes`, { params: { appointment: appointmentId } })
+                .then(res => res.results ?? []),
 
         create: (data: Partial<ClinicalIntake>) =>
             fetchApi<ClinicalIntake>('clinical/intakes', {
