@@ -91,6 +91,7 @@ skinflow-emr-v4/
 - **Components**: shadcn/ui pattern in `components/ui/`, app-specific in `components/sf/`
 - **Server Components**: Default, use `'use client'` only when needed
 - **API-loaded Dropdowns**: All dropdowns that load from API data (patients, providers, procedures, products, medicines, etc.) must use a searchable combobox pattern (cmdk or similar). Search must match anywhere in the string, not just the start. Use the existing cmdk dependency. This applies globally across the entire app.
+- **Error Handling (Global Rule)**: Every API call that modifies data (POST, PATCH, DELETE) must be wrapped in `try/catch` with a `toast.error()` on failure. Always surface the API error message to the user: `toast.error((error as Error).message || "Fallback message.")`. Never let API errors silently fail to the console only.
 
 ### Naming Conventions
 - Django models: PascalCase (e.g., `ProcedureSession`)

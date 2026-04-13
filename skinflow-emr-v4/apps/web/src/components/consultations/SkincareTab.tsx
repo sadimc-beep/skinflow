@@ -132,8 +132,8 @@ export function SkincareTab({
       await clinicalApi.prescriptions.deleteProduct(productId);
       toast.success("Skincare item removed.");
       onPrescriptionUpdated();
-    } catch {
-      toast.error("Failed to remove skincare item.");
+    } catch (error) {
+      toast.error((error as Error).message || "Failed to remove skincare item.");
     } finally {
       setDeletingId(null);
     }

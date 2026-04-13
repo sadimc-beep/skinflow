@@ -243,8 +243,8 @@ export function ProceduresTab({
       await clinicalApi.prescriptions.deleteProcedure(procedureId);
       toast.success("Procedure removed.");
       onPrescriptionUpdated();
-    } catch {
-      toast.error("Failed to remove procedure.");
+    } catch (error) {
+      toast.error((error as Error).message || "Failed to remove procedure.");
     } finally {
       setDeletingId(null);
     }
@@ -560,8 +560,8 @@ export function ProceduresTab({
                             await clinicalApi.treatmentPlans.deleteItem(plan.id);
                             toast.success("Treatment plan removed.");
                             await fetchTreatmentPlans();
-                          } catch {
-                            toast.error("Failed to remove plan.");
+                          } catch (error) {
+                            toast.error((error as Error).message || "Failed to remove plan.");
                           } finally {
                             setDeletingPlanId(null);
                           }

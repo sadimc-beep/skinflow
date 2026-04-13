@@ -302,8 +302,8 @@ export function RxTab({
       await clinicalApi.prescriptions.deleteMedication(medicationId);
       toast.success("Medication removed.");
       onPrescriptionUpdated();
-    } catch {
-      toast.error("Failed to remove medication.");
+    } catch (error) {
+      toast.error((error as Error).message || "Failed to remove medication.");
     } finally {
       setDeletingId(null);
     }
