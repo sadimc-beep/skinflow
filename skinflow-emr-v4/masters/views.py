@@ -24,7 +24,9 @@ class MasterBaseViewSet(viewsets.ModelViewSet):
     pagination_class = StandardResultsSetPagination
 
     def get_permissions(self):
-        if self.action in ('list', 'retrieve'):
+        # Safe methods (list, retrieve, and any read-only custom actions) open to all staff.
+        # Writes/deletes locked to settings module (org admin only).
+        if self.request.method in ('GET', 'HEAD', 'OPTIONS'):
             return [permissions.IsAuthenticated()]
         return [HasRolePermission()]
 

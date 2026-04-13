@@ -130,11 +130,28 @@ class ConsultationViewSet(ClinicalBaseViewSet):
     filterset_fields = ['patient', 'provider', 'status']
 
     def get_permissions(self):
-        # Only Owner/Doctor can create or edit consultation records.
-        # Front Desk has clinical.write for appointments/vitals but must not touch chart notes.
+        # Only Owner/Doctor can write consultations.
+        # Everyone with clinical.read (Doctor, Therapist, Front Desk) can list/retrieve/finalize/pdf.
         if self.action in ('create', 'update', 'partial_update', 'destroy'):
             return [IsDoctorOrOrgAdmin()]
-        return super().get_permissions()
+        return [HasRolePermission()]  # uses inherited permission_module = 'clinical'
+
+    def perform_create(self, serializer):
+        org = get_current_org(self.request)
+        # Ownership check: non-admin doctors can only create consultations for their own appointments.
+        staff = getattr(self.request.user, 'staff_profile', None)
+        if staff and not staff.is_org_admin and not self.request.user.is_superuser:
+            provider_profile = getattr(self.request.user, 'provider_profile', None)
+            if provider_profile:
+                appt = serializer.validated_data.get('appointment')
+                direct_provider = serializer.validated_data.get('provider')
+                if appt and appt.provider_id != provider_profile.id:
+                    from rest_framework.exceptions import PermissionDenied
+                    raise PermissionDenied('You can only create consultations for your own appointments.')
+                if direct_provider and direct_provider.id != provider_profile.id:
+                    from rest_framework.exceptions import PermissionDenied
+                    raise PermissionDenied('You can only create consultations assigned to yourself.')
+        serializer.save(organization=org)
 
     @action(detail=True, methods=['post'])
     def finalize(self, request, pk=None):
