@@ -92,13 +92,9 @@ class PrescriptionProductSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
     def get_stock_quantity(self, obj):
-        if not obj.product_id:
-            return None
-        from inventory.models import StockItem
-        from django.db.models import Sum
-        result = StockItem.objects.filter(product_id=obj.product_id).aggregate(total=Sum('quantity'))
-        total = result['total']
-        return float(total) if total is not None else 0.0
+        # PrescriptionProduct uses product_name (CharField), not a FK to inventory.
+        # Stock lookup requires a proper FK — return None until that FK exists.
+        return None
 
 class PrescriptionSerializer(serializers.ModelSerializer):
     medications = PrescriptionMedicationSerializer(many=True, read_only=True)
