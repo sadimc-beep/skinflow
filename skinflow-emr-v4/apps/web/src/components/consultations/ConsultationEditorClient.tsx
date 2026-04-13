@@ -81,14 +81,16 @@ export function ConsultationEditorClient({
   const { user } = useAuth();
 
   // Derive whether this user can edit consultation records.
-  // Matches the backend IsDoctorOrOrgAdmin permission class.
-  const canEdit =
-    !user ||
-    user.is_superuser ||
-    user.is_org_admin ||
-    DOCTOR_KEYWORDS.some((kw) =>
-      user.role?.name?.toLowerCase().includes(kw),
-    );
+  // Matches the backend IsDoctorOrOrgAdmin + perform_update ownership check.
+  const isDoctor = DOCTOR_KEYWORDS.some((kw) =>
+    user?.role?.name?.toLowerCase().includes(kw),
+  );
+  const isOwnerOrAdmin = !user || user.is_superuser || user.is_org_admin;
+  const isThisConsultationsDoctor =
+    isOwnerOrAdmin ||
+    // Doctor must own this specific consultation
+    (isDoctor && user?.provider_id === consultation.provider);
+  const canEdit = isThisConsultationsDoctor;
   const isReadOnly = !canEdit;
 
   const [isSaving, setIsSaving] = useState(false);
@@ -262,8 +264,10 @@ export function ConsultationEditorClient({
             <EyeOff className="h-5 w-5 text-[#A0978D]" />
           </div>
           <p>
-            You have <strong className="font-bold text-[#1C1917]">read-only access</strong> to this consultation.
-            Clinical notes and prescriptions can only be edited by the attending doctor.
+            You have <strong className="font-bold text-[#1C1917]">read-only access</strong> to this consultation.{" "}
+            {isDoctor
+              ? "You can only edit consultations assigned to you."
+              : "Clinical notes and prescriptions can only be edited by the attending doctor."}
           </p>
         </div>
       )}

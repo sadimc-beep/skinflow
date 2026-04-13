@@ -153,6 +153,18 @@ class ConsultationViewSet(ClinicalBaseViewSet):
                     raise PermissionDenied('You can only create consultations assigned to yourself.')
         serializer.save(organization=org)
 
+    def perform_update(self, serializer):
+        # Ownership check: non-admin doctors can only edit their own consultations.
+        staff = getattr(self.request.user, 'staff_profile', None)
+        if staff and not staff.is_org_admin and not self.request.user.is_superuser:
+            provider_profile = getattr(self.request.user, 'provider_profile', None)
+            if provider_profile:
+                instance = serializer.instance
+                if instance.provider_id != provider_profile.id:
+                    from rest_framework.exceptions import PermissionDenied
+                    raise PermissionDenied('You can only edit your own consultations.')
+        serializer.save()
+
     @action(detail=True, methods=['post'])
     def finalize(self, request, pk=None):
         consultation = self.get_object()
