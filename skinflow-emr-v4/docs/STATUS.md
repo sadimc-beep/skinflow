@@ -158,6 +158,11 @@
 8. ~~**Multi-Tenancy Fallback**~~: Resolved — `get_current_org()` now raises `AuthenticationFailed` instead of falling back to first org; all core views require `IsAuthenticated`; global DRF default changed to `IsAuthenticated`
 9. ~~**Duplicate patient phone error**~~: Resolved — `PatientViewSet.perform_create` now catches `IntegrityError` on `(organization, phone_primary)` and returns HTTP 400 with `"A patient with this phone number already exists."`
 10. **AppointmentsListClient patientView bug**: When used inside patient detail page with `patientView=true`, the `useEffect` fetches all appointments by selected day instead of filtering by patient, overwriting the patient-specific `initialData`. Needs a `patientId` prop wired similarly to `InvoicesListClient`.
+11. **Medication frequency options**: Current dropdown has 11 options. Needs more combinations — "twice daily morning & night", "alternate days", "every 6 hours", etc. Low priority.
+12. **Consultation finalize modal**: UI needs design polish. Defer to design sprint.
+13. **Print Rx button**: Not working on consultation page. Needs investigation.
+14. **PDF download on invoices**: Not working. Print opens system dialog with HTML page. Needs proper PDF generation.
+15. **Treatment plan detail view**: Plans can be created but no way to view plan contents. Needs detail expansion or modal.
 
 ---
 
