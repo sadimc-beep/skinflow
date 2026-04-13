@@ -26,9 +26,13 @@ class EntitlementSerializer(serializers.ModelSerializer):
     patient_details = PatientSerializer(source='patient', read_only=True)
     procedure_name = serializers.CharField(source='procedure_type.name', read_only=True)
     planned_qty = serializers.SerializerMethodField()
+    started_qty = serializers.SerializerMethodField()
 
     def get_planned_qty(self, obj):
         return obj.procedure_sessions.filter(status='PLANNED').count()
+
+    def get_started_qty(self, obj):
+        return obj.procedure_sessions.filter(status='STARTED').count()
 
     class Meta:
         model = Entitlement

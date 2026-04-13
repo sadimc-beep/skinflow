@@ -148,9 +148,19 @@ export function PatientEntitlements({ patientId, consultationId, defaultProvider
                                                 Purchased: {format(new Date(en.created_at), 'MMM d, yyyy')}
                                             </p>
                                         </div>
-                                        <Badge variant="outline" className="bg-[#F7F3ED] text-[#C4A882] border-[#C4A882]/30 px-3 py-1">
-                                            {en.remaining_qty - (en.planned_qty ?? 0)} Sessions Left
-                                        </Badge>
+                                        <div className="flex flex-col items-end gap-1">
+                                            <Badge variant="outline" className="bg-[#F7F3ED] text-[#C4A882] border-[#C4A882]/30 px-3 py-1">
+                                                {en.remaining_qty - (en.planned_qty ?? 0)} Sessions Left
+                                            </Badge>
+                                            {((en.planned_qty ?? 0) > 0 || (en.started_qty ?? 0) > 0) && (
+                                                <span className="text-xs text-[#78706A] bg-slate-100 border border-slate-200 rounded-full px-2 py-0.5 whitespace-nowrap">
+                                                    {[
+                                                        (en.planned_qty ?? 0) > 0 && `${en.planned_qty} booked`,
+                                                        (en.started_qty ?? 0) > 0 && `${en.started_qty} in progress`,
+                                                    ].filter(Boolean).join(' · ')}
+                                                </span>
+                                            )}
+                                        </div>
                                     </div>
                                     <div className="mt-4 pt-4 border-t border-[#E8E1D6] grid grid-cols-3 text-center divide-x divide-[#E8E1D6]">
                                         <div>
