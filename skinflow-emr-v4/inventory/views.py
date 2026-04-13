@@ -61,6 +61,13 @@ class ProductViewSet(InventoryBaseViewSet):
     filterset_fields = ['product_type', 'is_saleable']
     search_fields = ['name', 'sku']
 
+    def get_permissions(self):
+        # Any authenticated org member can list/retrieve products (needed for consultation dropdowns)
+        # Only inventory-level users can create/update/delete
+        if self.action in ('list', 'retrieve'):
+            return [permissions.IsAuthenticated()]
+        return [HasRolePermission()]
+
 class StockLocationViewSet(InventoryBaseViewSet):
     queryset = StockLocation.objects.all()
     serializer_class = StockLocationSerializer

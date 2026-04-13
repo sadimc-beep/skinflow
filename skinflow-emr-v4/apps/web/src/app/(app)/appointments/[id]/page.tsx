@@ -278,8 +278,8 @@ export default function AppointmentDetailPage() {
                     </Button>
                 )}
 
-                {/* READY_FOR_CONSULT → start consultation */}
-                {appt.status === 'READY_FOR_CONSULT' && (
+                {/* READY_FOR_CONSULT → start consultation (doctors only) */}
+                {appt.status === 'READY_FOR_CONSULT' && isConsultant && (
                     <Button onClick={handleStartConsultation} disabled={actionLoading === 'start_consultation'}>
                         {actionLoading === 'start_consultation' ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Starting…</> : 'Start Consultation'}
                     </Button>
