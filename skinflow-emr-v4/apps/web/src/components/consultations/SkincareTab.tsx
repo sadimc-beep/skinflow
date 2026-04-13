@@ -15,7 +15,8 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Card, CardContent } from "@/components/ui/card";
-import { Trash2, PlusCircle, Search } from "lucide-react";
+import { Trash2, PlusCircle, Search, AlertTriangle } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import {
   Popover,
@@ -75,13 +76,12 @@ export function SkincareTab({
   const selectedProduct = form.watch("product");
 
   useEffect(() => {
-    // Fetch skincare products. Provide an empty query initially to load a default list
     inventoryApi.products
-      .search(debouncedSearch, "SKINCARE")
+      .search(debouncedSearch, undefined, true)
       .then((res) => {
         setSearchResults(res.results);
       })
-      .catch(() => toast.error("Failed to fetch skincare products"));
+      .catch(() => toast.error("Failed to fetch products"));
   }, [debouncedSearch]);
 
   const handleAddProduct = async (data: {
@@ -154,7 +154,7 @@ export function SkincareTab({
               name="product"
               render={({ field }) => (
                 <FormItem className="flex flex-col col-span-2">
-                  <FormLabel>Inventory Product (Skincare Only)</FormLabel>
+                  <FormLabel>Product</FormLabel>
                   <Popover open={open} onOpenChange={setOpen}>
                     <PopoverTrigger asChild>
                       <FormControl>
@@ -179,32 +179,44 @@ export function SkincareTab({
                     >
                       <Command shouldFilter={false}>
                         <CommandInput
-                          placeholder="Search sku or name..."
+                          placeholder="Search by name or SKU…"
                           value={searchQuery}
                           onValueChange={setSearchQuery}
                         />
                         <CommandList>
                           <CommandEmpty>No products found.</CommandEmpty>
                           <CommandGroup>
-                            {searchResults.map((prod) => (
-                              <CommandItem
-                                key={prod.id}
-                                value={prod.id.toString()}
-                                onSelect={() => {
-                                  form.setValue("product", prod);
-                                  setOpen(false);
-                                }}
-                              >
-                                <div className="flex justify-between w-full">
-                                  <span className="font-medium">
-                                    {prod.name}
-                                  </span>
-                                  <span className="text-muted-foreground">
-                                    ৳{prod.sale_price}
-                                  </span>
-                                </div>
-                              </CommandItem>
-                            ))}
+                            {searchResults.map((prod) => {
+                              const outOfStock = prod.stock_quantity === 0;
+                              return (
+                                <CommandItem
+                                  key={prod.id}
+                                  value={prod.id.toString()}
+                                  onSelect={() => {
+                                    form.setValue("product", prod);
+                                    setOpen(false);
+                                  }}
+                                >
+                                  <div className="flex items-center justify-between w-full gap-2">
+                                    <div className="flex items-center gap-2 min-w-0">
+                                      <span className="font-medium truncate">{prod.name}</span>
+                                      {outOfStock && (
+                                        <Badge variant="outline" className="shrink-0 text-[10px] border-[#C4705A] text-[#C4705A] flex items-center gap-1 px-1.5 py-0">
+                                          <AlertTriangle className="h-2.5 w-2.5" />
+                                          Out of stock
+                                        </Badge>
+                                      )}
+                                    </div>
+                                    <div className="flex items-center gap-3 shrink-0 text-sm text-muted-foreground">
+                                      <span>৳{prod.sale_price}</span>
+                                      <span className={outOfStock ? "text-[#C4705A]" : "text-[#7A9E8A]"}>
+                                        {prod.stock_quantity} in stock
+                                      </span>
+                                    </div>
+                                  </div>
+                                </CommandItem>
+                              );
+                            })}
                           </CommandGroup>
                         </CommandList>
                       </Command>

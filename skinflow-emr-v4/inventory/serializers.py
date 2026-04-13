@@ -20,10 +20,18 @@ class UnitOfMeasureSerializer(serializers.ModelSerializer):
         read_only_fields = ['organization']
 
 class ProductSerializer(serializers.ModelSerializer):
+    stock_quantity = serializers.SerializerMethodField()
+
     class Meta:
         model = Product
         fields = '__all__'
         read_only_fields = ['organization']
+
+    def get_stock_quantity(self, obj):
+        from django.db.models import Sum
+        result = obj.stock_items.aggregate(total=Sum('quantity'))
+        total = result['total']
+        return float(total) if total is not None else 0.0
 
 class StockLocationSerializer(serializers.ModelSerializer):
     class Meta:

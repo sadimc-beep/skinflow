@@ -12,15 +12,17 @@ export interface Product {
     is_stock_tracked: boolean;
     is_procedure_item: boolean;
     is_clinic_item: boolean;
+    stock_quantity: number;
 }
 
 export const inventoryApi = {
     products: {
         list: (params?: Record<string, any>) => fetchApi<PaginatedResponse<Product>>('inventory/products', { params }),
-        search: (searchQuery?: string, type?: string) => {
+        search: (searchQuery?: string, type?: string, isSaleable?: boolean) => {
             const params: any = {};
             if (searchQuery) params.search = searchQuery;
             if (type) params.product_type = type;
+            if (isSaleable !== undefined) params.is_saleable = isSaleable;
             return fetchApi<PaginatedResponse<Product>>('inventory/products', { params });
         }
     },

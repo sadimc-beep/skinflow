@@ -56,6 +56,7 @@ import type {
 import { RxTab } from "./RxTab";
 import { SkincareTab } from "./SkincareTab";
 import { ProceduresTab } from "./ProceduresTab";
+import { GenerateBillModal } from "./GenerateBillModal";
 
 type EditorProps = {
   consultation: Consultation;
@@ -76,6 +77,7 @@ export function ConsultationEditorClient({
   const [isSaving, setIsSaving] = useState(false);
   const [isFinalizing, setIsFinalizing] = useState(false);
   const [finalizeModalOpen, setFinalizeModalOpen] = useState(false);
+  const [billModalOpen, setBillModalOpen] = useState(false);
   const [liveConsultation, setLiveConsultation] = useState(consultation);
   const [isDownloadingRx, setIsDownloadingRx] = useState(false);
 
@@ -223,13 +225,15 @@ export function ConsultationEditorClient({
               <Download className="h-4 w-4 mr-2" />
               {isDownloadingRx ? "Generating…" : "Print Rx"}
             </Button>
-            <a
-              href={`/billing?consultation=${liveConsultation.id}`}
-              className="inline-flex items-center gap-2 text-sm font-semibold px-4 py-2.5 rounded-full bg-white text-[#1C1917] border border-[#D9D0C5] hover:bg-[#F7F3ED] hover:text-[#C4A882] whitespace-nowrap transition-all shadow-sm"
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setBillModalOpen(true)}
+              className="rounded-full bg-white text-[#1C1917] border-[#D9D0C5] hover:bg-[#F7F3ED] hover:text-[#C4A882] shadow-sm"
             >
-              <Receipt className="h-4 w-4" />
-              Generate Bill
-            </a>
+              <Receipt className="h-4 w-4 mr-2" />
+              Generate Invoice
+            </Button>
           </div>
         </div>
       )}
@@ -678,6 +682,12 @@ export function ConsultationEditorClient({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <GenerateBillModal
+        consultation={liveConsultation}
+        open={billModalOpen}
+        onClose={() => setBillModalOpen(false)}
+      />
     </div>
   );
 }
