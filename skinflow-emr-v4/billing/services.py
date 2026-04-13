@@ -59,7 +59,21 @@ def generate_invoice_from_consultation(consultation_id):
         
     if not hasattr(consultation, 'prescription'):
         raise ValueError("Consultation has no prescription")
-        
+
+    # Stock check for products before creating the invoice
+    from inventory.models import StockItem
+    from django.db.models import Sum
+    from rest_framework.exceptions import ValidationError as DRFValidationError
+    out_of_stock = []
+    for prod in consultation.prescription.products.filter(is_selected_for_billing=True, billed_invoice__isnull=True):
+        if prod.product_id:
+            total = StockItem.objects.filter(product_id=prod.product_id).aggregate(total=Sum('quantity'))['total'] or 0
+            if total <= 0:
+                out_of_stock.append(prod.product_name)
+    if out_of_stock:
+        names = ', '.join(out_of_stock)
+        raise DRFValidationError(f"Cannot generate invoice: {names} {'is' if len(out_of_stock) == 1 else 'are'} out of stock.")
+
     invoice = Invoice.objects.create(
         organization=consultation.organization,
         patient=consultation.patient,
@@ -142,7 +156,26 @@ def generate_new_invoice_from_consultation_selection(consultation_id, selected_p
     
     if not selected_procedure_ids and not selected_product_ids:
         raise ValueError("No items selected for billing")
-        
+
+    # Stock check for selected products before creating the invoice
+    if selected_product_ids:
+        from inventory.models import StockItem
+        from django.db.models import Sum
+        from rest_framework.exceptions import ValidationError as DRFValidationError
+        out_of_stock = []
+        for prod_id in selected_product_ids:
+            try:
+                prod = PrescriptionProduct.objects.get(id=prod_id, prescription__consultation=consultation, billed_invoice__isnull=True)
+                if prod.product_id:
+                    total = StockItem.objects.filter(product_id=prod.product_id).aggregate(total=Sum('quantity'))['total'] or 0
+                    if total <= 0:
+                        out_of_stock.append(prod.product_name)
+            except PrescriptionProduct.DoesNotExist:
+                continue
+        if out_of_stock:
+            names = ', '.join(out_of_stock)
+            raise DRFValidationError(f"Cannot generate invoice: {names} {'is' if len(out_of_stock) == 1 else 'are'} out of stock.")
+
     # Option B: Use the master invoice tied to the appointment if it exists and is not fully closed/refunded.
     invoice = None
     if consultation.appointment:

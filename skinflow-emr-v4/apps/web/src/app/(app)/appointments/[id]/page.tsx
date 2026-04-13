@@ -8,7 +8,7 @@ import { clinicalApi } from '@/lib/services/clinical';
 import { ArrivedModal } from '@/components/appointments/ArrivedModal';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ChevronRight, Loader2, Pencil } from 'lucide-react';
+import { AlertCircle, ChevronRight, Loader2, Pencil } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import type { Appointment } from '@/types/models';
@@ -279,11 +279,19 @@ export default function AppointmentDetailPage() {
                 )}
 
                 {/* READY_FOR_CONSULT → start consultation (doctors only) */}
-                {appt.status === 'READY_FOR_CONSULT' && isConsultant && (
-                    <Button onClick={handleStartConsultation} disabled={actionLoading === 'start_consultation'}>
-                        {actionLoading === 'start_consultation' ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Starting…</> : 'Start Consultation'}
-                    </Button>
-                )}
+                {appt.status === 'READY_FOR_CONSULT' && isConsultant && (() => {
+                    const feeBlocked = !appt.is_fee_paid && appt.fee_waiver_approved !== true && parseFloat(appt.fee || '0') > 0;
+                    return feeBlocked ? (
+                        <span className="text-sm text-muted-foreground flex items-center gap-1.5">
+                            <AlertCircle className="h-4 w-4 shrink-0 text-destructive" />
+                            Fee payment pending — contact front desk.
+                        </span>
+                    ) : (
+                        <Button onClick={handleStartConsultation} disabled={actionLoading === 'start_consultation'}>
+                            {actionLoading === 'start_consultation' ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Starting…</> : 'Start Consultation'}
+                        </Button>
+                    );
+                })()}
 
                 {/* IN_CONSULTATION → view consultation */}
                 {appt.status === 'IN_CONSULTATION' && (
