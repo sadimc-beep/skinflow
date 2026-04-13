@@ -18,7 +18,7 @@ from .serializers import (
     ClinicalPhotoSerializer, ConsentFormSerializer, ConsentFormTemplateSerializer,
 )
 from core.api_auth import get_current_org
-from core.permissions import HasRolePermission, IsKioskToken
+from core.permissions import HasRolePermission, IsKioskToken, IsDoctorOrOrgAdmin
 from patients.views import StandardResultsSetPagination
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters
@@ -128,7 +128,14 @@ class ConsultationViewSet(ClinicalBaseViewSet):
     queryset = Consultation.objects.all().select_related('patient', 'provider__user', 'prescription')
     serializer_class = ConsultationSerializer
     filterset_fields = ['patient', 'provider', 'status']
-    
+
+    def get_permissions(self):
+        # Only Owner/Doctor can create or edit consultation records.
+        # Front Desk has clinical.write for appointments/vitals but must not touch chart notes.
+        if self.action in ('create', 'update', 'partial_update', 'destroy'):
+            return [IsDoctorOrOrgAdmin()]
+        return super().get_permissions()
+
     @action(detail=True, methods=['post'])
     def finalize(self, request, pk=None):
         consultation = self.get_object()
@@ -327,9 +334,19 @@ class TreatmentPlanViewSet(ClinicalBaseViewSet):
     serializer_class = TreatmentPlanSerializer
     filterset_fields = ['patient']
 
+    def get_permissions(self):
+        if self.action in ('create', 'update', 'partial_update', 'destroy'):
+            return [IsDoctorOrOrgAdmin()]
+        return super().get_permissions()
+
 class TreatmentPlanItemViewSet(ClinicalBaseViewSet):
     queryset = TreatmentPlanItem.objects.all().select_related('procedure_type')
     serializer_class = TreatmentPlanItemSerializer
+
+    def get_permissions(self):
+        if self.action in ('create', 'update', 'partial_update', 'destroy'):
+            return [IsDoctorOrOrgAdmin()]
+        return super().get_permissions()
 
     def get_queryset(self):
         org = get_current_org(self.request)
@@ -363,6 +380,12 @@ class ConsentFormTemplateViewSet(ClinicalBaseViewSet):
     """
     queryset = ConsentFormTemplate.objects.all()
     serializer_class = ConsentFormTemplateSerializer
+    permission_module = 'settings'  # writes are admin-only; reads open below
+
+    def get_permissions(self):
+        if self.action in ('list', 'retrieve'):
+            return [permissions.IsAuthenticated()]
+        return [HasRolePermission()]
 
 
 class ConsentFormViewSet(ClinicalBaseViewSet):

@@ -18,8 +18,15 @@ from patients.views import StandardResultsSetPagination
 # A base viewset for all masters to apply common logic
 class MasterBaseViewSet(viewsets.ModelViewSet):
     permission_classes = [HasRolePermission]
-    permission_module = 'clinical'
+    # Writes are settings-only (only org admins manage master data).
+    # Reads are open to all authenticated clinic members (needed for prescription/session dropdowns).
+    permission_module = 'settings'
     pagination_class = StandardResultsSetPagination
+
+    def get_permissions(self):
+        if self.action in ('list', 'retrieve'):
+            return [permissions.IsAuthenticated()]
+        return [HasRolePermission()]
 
     def get_queryset(self):
         org = get_current_org(self.request)

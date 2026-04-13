@@ -590,6 +590,9 @@ class AccountingSettingsView(APIView):
     """
     Singleton API endpoint to get/update Accounting Settings.
     """
+    permission_classes = [HasRolePermission]
+    permission_module = 'accounting'
+
     def get(self, request):
         org = get_current_org(request)
         settings, _ = AccountingSettings.objects.get_or_create(organization=org)

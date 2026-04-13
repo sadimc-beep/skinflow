@@ -81,6 +81,98 @@ class HasRolePermission(permissions.BasePermission):
         return action in user_perms.get(domain, [])
 
 
+class IsDoctorOrOrgAdmin(permissions.BasePermission):
+    """
+    Allows write access only to users whose role name contains a doctor-like keyword,
+    plus org admins and superusers.
+
+    Used to gate ConsultationViewSet and TreatmentPlanViewSet writes so that Front Desk
+    staff (who have clinical.write for appointments/vitals) cannot create or modify
+    clinical chart notes.
+    """
+    _KEYWORDS = ('doctor', 'physician', 'consultant')
+
+    def has_permission(self, request, view):
+        if not request.user or not request.user.is_authenticated:
+            return False
+        if request.user.is_superuser:
+            return True
+        staff = getattr(request.user, 'staff_profile', None)
+        if not staff or not staff.is_active:
+            return False
+
+        # Subscription check (mirrors HasRolePermission)
+        try:
+            sub = staff.organization.subscription
+            if sub.status == 'CANCELLED':
+                raise PermissionDenied('Your subscription has been cancelled. Please contact support.')
+            if sub.status == 'SUSPENDED' and request.method not in permissions.SAFE_METHODS:
+                raise PermissionDenied('Your subscription is suspended. Write operations are disabled.')
+        except PermissionDenied:
+            raise
+        except Exception:
+            pass
+
+        if staff.is_org_admin:
+            return True
+
+        role = staff.role
+        if not role:
+            return False
+        return any(kw in role.name.lower() for kw in self._KEYWORDS)
+
+
+class HasAnyModulePermission(permissions.BasePermission):
+    """
+    Grants permission if the user satisfies ANY one of the supplied (module, action) pairs.
+    Action is a literal string: 'read', 'write', or 'delete' — NOT derived from the HTTP method.
+
+    Usage in get_permissions():
+        return [HasAnyModulePermission([('clinical', 'write'), ('inventory', 'write')])]
+
+    Applies the same superuser / org_admin bypass and subscription check as HasRolePermission.
+    """
+
+    def __init__(self, module_actions):
+        self.module_actions = module_actions  # list of (module, action) tuples
+
+    def has_permission(self, request, view):
+        if not request.user or not request.user.is_authenticated:
+            return False
+        if request.user.is_superuser:
+            return True
+        staff = getattr(request.user, 'staff_profile', None)
+        if not staff or not staff.is_active:
+            return False
+
+        try:
+            sub = staff.organization.subscription
+            if sub.status == 'CANCELLED':
+                raise PermissionDenied('Your subscription has been cancelled. Please contact support.')
+            if sub.status == 'SUSPENDED' and request.method not in permissions.SAFE_METHODS:
+                raise PermissionDenied('Your subscription is suspended. Write operations are disabled.')
+        except PermissionDenied:
+            raise
+        except Exception:
+            pass
+
+        if staff.is_org_admin:
+            return True
+
+        role = staff.role
+        if not role:
+            return False
+
+        user_perms = role.permissions
+        if not isinstance(user_perms, dict):
+            return False
+
+        return any(
+            action in user_perms.get(module, [])
+            for module, action in self.module_actions
+        )
+
+
 class IsSuperUser(permissions.BasePermission):
     """Allows access only to Django superusers."""
 

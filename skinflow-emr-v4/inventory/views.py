@@ -22,7 +22,7 @@ from .serializers import (
 )
 from accounting.services import AccountingService
 from core.api_auth import get_current_org
-from core.permissions import HasRolePermission
+from core.permissions import HasRolePermission, HasAnyModulePermission
 from patients.views import StandardResultsSetPagination
 
 
@@ -72,17 +72,37 @@ class StockLocationViewSet(InventoryBaseViewSet):
     queryset = StockLocation.objects.all()
     serializer_class = StockLocationSerializer
 
+    def get_permissions(self):
+        if self.action in ('list', 'retrieve'):
+            return [permissions.IsAuthenticated()]
+        return [HasRolePermission()]
+
 class StockItemViewSet(InventoryBaseViewSet):
     queryset = StockItem.objects.all().select_related('product', 'location')
     serializer_class = StockItemSerializer
+
+    def get_permissions(self):
+        if self.action in ('list', 'retrieve'):
+            return [permissions.IsAuthenticated()]
+        return [HasRolePermission()]
 
 class ProductCategoryViewSet(InventoryBaseViewSet):
     queryset = ProductCategory.objects.all()
     serializer_class = ProductCategorySerializer
 
+    def get_permissions(self):
+        if self.action in ('list', 'retrieve'):
+            return [permissions.IsAuthenticated()]
+        return [HasRolePermission()]
+
 class UnitOfMeasureViewSet(InventoryBaseViewSet):
     queryset = UnitOfMeasure.objects.all()
     serializer_class = UnitOfMeasureSerializer
+
+    def get_permissions(self):
+        if self.action in ('list', 'retrieve'):
+            return [permissions.IsAuthenticated()]
+        return [HasRolePermission()]
 
 class StockMovementViewSet(InventoryBaseViewSet):
     queryset = StockMovement.objects.all().select_related('product', 'location')
@@ -118,6 +138,16 @@ class InventoryRequisitionViewSet(InventoryBaseViewSet):
     serializer_class = InventoryRequisitionSerializer
     filter_backends = [filters.SearchFilter, DjangoFilterBackend]
     filterset_fields = ['status', 'requisition_type', 'session']
+
+    def get_permissions(self):
+        if self.action in ('list', 'retrieve'):
+            # All clinical and store staff need to see requisitions
+            return [permissions.IsAuthenticated()]
+        if self.action == 'create':
+            # Clinical staff submit requisitions; store staff also create directly
+            return [HasAnyModulePermission([('clinical', 'write'), ('inventory', 'write')])]
+        # approve, reject, fulfill, update, partial_update, destroy — inventory only
+        return [HasRolePermission()]
 
     def perform_create(self, serializer):
         org = get_current_org(self.request)
@@ -210,6 +240,13 @@ class InventoryRequisitionLineViewSet(InventoryBaseViewSet):
     serializer_class = InventoryRequisitionLineSerializer
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ['requisition']
+
+    def get_permissions(self):
+        if self.action in ('list', 'retrieve'):
+            return [permissions.IsAuthenticated()]
+        if self.action == 'create':
+            return [HasAnyModulePermission([('clinical', 'write'), ('inventory', 'write')])]
+        return [HasRolePermission()]
 
     def perform_create(self, serializer):
         # Override so we don't try to save 'organization' on a line

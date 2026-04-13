@@ -428,7 +428,10 @@ from .serializers import BookingSettingsSerializer
 
 class BookingSettingsView(APIView):
     """GET/PATCH singleton booking settings for the current org."""
+    # Reads are open to all authenticated staff (front desk needs to see slot config).
+    # Writes require settings.write (only org admins configure booking rules).
     permission_classes = [permissions.IsAuthenticated]
+    permission_module = 'settings'
 
     def get(self, request):
         org = get_current_org(request)
@@ -436,6 +439,11 @@ class BookingSettingsView(APIView):
         return Response(BookingSettingsSerializer(settings_obj).data)
 
     def patch(self, request):
+        perm = HasRolePermission()
+        if not perm.has_permission(request, self):
+            from rest_framework import status as drf_status
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied('You do not have permission to modify booking settings.')
         org = get_current_org(request)
         settings_obj, _ = BookingSettings.objects.get_or_create(organization=org)
         serializer = BookingSettingsSerializer(settings_obj, data=request.data, partial=True)
