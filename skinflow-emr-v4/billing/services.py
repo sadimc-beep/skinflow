@@ -63,7 +63,6 @@ def generate_invoice_from_consultation(consultation_id):
     # Stock check for products before creating the invoice
     from inventory.models import StockItem
     from django.db.models import Sum
-    from rest_framework.exceptions import ValidationError as DRFValidationError
     out_of_stock = []
     for prod in consultation.prescription.products.filter(is_selected_for_billing=True, billed_invoice__isnull=True):
         if prod.product_id:
@@ -72,7 +71,7 @@ def generate_invoice_from_consultation(consultation_id):
                 out_of_stock.append(prod.product_name)
     if out_of_stock:
         names = ', '.join(out_of_stock)
-        raise DRFValidationError(f"Cannot generate invoice: {names} {'is' if len(out_of_stock) == 1 else 'are'} out of stock.")
+        raise ValueError(f"Cannot generate invoice: {names} {'is' if len(out_of_stock) == 1 else 'are'} out of stock.")
 
     invoice = Invoice.objects.create(
         organization=consultation.organization,
@@ -161,7 +160,6 @@ def generate_new_invoice_from_consultation_selection(consultation_id, selected_p
     if selected_product_ids:
         from inventory.models import StockItem
         from django.db.models import Sum
-        from rest_framework.exceptions import ValidationError as DRFValidationError
         out_of_stock = []
         for prod_id in selected_product_ids:
             try:
@@ -174,7 +172,7 @@ def generate_new_invoice_from_consultation_selection(consultation_id, selected_p
                 continue
         if out_of_stock:
             names = ', '.join(out_of_stock)
-            raise DRFValidationError(f"Cannot generate invoice: {names} {'is' if len(out_of_stock) == 1 else 'are'} out of stock.")
+            raise ValueError(f"Cannot generate invoice: {names} {'is' if len(out_of_stock) == 1 else 'are'} out of stock.")
 
     # Option B: Use the master invoice tied to the appointment if it exists and is not fully closed/refunded.
     invoice = None

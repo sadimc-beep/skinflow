@@ -11,6 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { billingApi } from "@/lib/services/billing";
 import type { Consultation } from "@/types/models";
@@ -168,10 +169,11 @@ export function GenerateBillModal({
                 const total =
                   prod.quantity * parseFloat(prod.price) -
                   parseFloat(prod.manual_discount);
+                const isOutOfStock = prod.stock_quantity !== null && prod.stock_quantity !== undefined && prod.stock_quantity <= 0;
                 return (
                   <div
                     key={`prod-${prod.id}`}
-                    className="flex items-start space-x-4 p-4 bg-white border border-[#E8E1D6] rounded-xl shadow-sm hover:border-[#C4A882] transition-colors"
+                    className={`flex items-start space-x-4 p-4 bg-white border rounded-xl shadow-sm transition-colors ${isOutOfStock ? "border-[#C4705A]/40 bg-[#C4705A]/5" : "border-[#E8E1D6] hover:border-[#C4A882]"}`}
                   >
                     <Checkbox
                       id={`prod-${prod.id}`}
@@ -180,17 +182,24 @@ export function GenerateBillModal({
                       className="mt-1 border-[#A0978D] data-[state=checked]:bg-[#1C1917] data-[state=checked]:border-[#1C1917]"
                     />
                     <div className="grid gap-1.5 leading-none w-full">
-                      <div className="flex justify-between items-center w-full">
-                        <Label
-                          htmlFor={`prod-${prod.id}`}
-                          className="font-bold text-base text-[#1C1917] cursor-pointer"
-                        >
-                          {prod.product_name}{" "}
-                          <span className="text-[#78706A] font-medium text-sm ml-1">
-                            (Qty: {prod.quantity})
-                          </span>
-                        </Label>
-                        <span className="font-bold text-lg text-[#1C1917]">
+                      <div className="flex justify-between items-start w-full gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <Label
+                            htmlFor={`prod-${prod.id}`}
+                            className="font-bold text-base text-[#1C1917] cursor-pointer"
+                          >
+                            {prod.product_name}{" "}
+                            <span className="text-[#78706A] font-medium text-sm ml-1">
+                              (Qty: {prod.quantity})
+                            </span>
+                          </Label>
+                          {isOutOfStock && (
+                            <Badge className="bg-[#C4705A]/10 text-[#C4705A] border border-[#C4705A]/30 text-xs px-2 py-0.5">
+                              Out of Stock
+                            </Badge>
+                          )}
+                        </div>
+                        <span className="font-bold text-lg text-[#1C1917] shrink-0">
                           {formatCurrency(total)}
                         </span>
                       </div>

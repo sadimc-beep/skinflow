@@ -137,6 +137,7 @@ export interface PrescriptionProduct {
     manual_discount: string;
     is_selected_for_billing: boolean;
     billed_invoice?: number | null;
+    stock_quantity?: number | null;
 }
 
 export interface Prescription {
