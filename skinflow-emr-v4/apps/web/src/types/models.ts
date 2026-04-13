@@ -66,6 +66,7 @@ export interface Appointment {
     provider_details?: Pick<Provider, 'id' | 'default_consultation_fee'> & { name: string };
     date_time: string;                     // ISO datetime
     end_time?: string;                     // ISO datetime (optional)
+    arrived_at: string | null;             // Set when status → ARRIVED
     status: AppointmentStatus;
     fee: string;                           // Django DecimalField rendered as string
     fee_waiver_requested: boolean;

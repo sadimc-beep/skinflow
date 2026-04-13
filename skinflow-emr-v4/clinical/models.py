@@ -19,6 +19,7 @@ class Appointment(TimeStampedModel):
         NO_SHOW = 'NO_SHOW', 'No Show'
         
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.SCHEDULED)
+    arrived_at = models.DateTimeField(null=True, blank=True)
     fee = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     fee_waiver_requested = models.BooleanField(default=False)
     fee_waiver_reason = models.TextField(blank=True)

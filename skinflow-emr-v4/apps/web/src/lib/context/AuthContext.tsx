@@ -19,6 +19,7 @@ interface AuthUser {
     organization_name: string | null;
     is_superuser: boolean;
     is_org_admin?: boolean;
+    provider_id?: number | null;
 }
 
 interface AuthContextType {

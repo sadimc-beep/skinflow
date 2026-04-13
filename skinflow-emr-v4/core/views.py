@@ -142,6 +142,11 @@ class LoginView(APIView):
         if not is_super and (not staff or not staff.is_active):
             return Response({'error': 'Account is not active or not linked to a clinic.'}, status=status.HTTP_403_FORBIDDEN)
 
+        try:
+            provider_id = user.provider_profile.id
+        except Exception:
+            provider_id = None
+
         refresh = RefreshToken.for_user(user)
         return Response({
             'access': str(refresh.access_token),
@@ -160,6 +165,7 @@ class LoginView(APIView):
                 'organization_name': staff.organization.name if staff and staff.organization else None,
                 'is_superuser': is_super,
                 'is_org_admin': staff.is_org_admin if staff else False,
+                'provider_id': provider_id,
             }
         })
 
@@ -180,6 +186,11 @@ class MeView(APIView):
         else:
             org = get_current_org(request)
             
+        try:
+            provider_id = user.provider_profile.id
+        except Exception:
+            provider_id = None
+
         return Response({
             'id': user.id,
             'username': user.username,
@@ -194,6 +205,7 @@ class MeView(APIView):
             'organization_name': org.name if org else None,
             'is_superuser': user.is_superuser,
             'is_org_admin': staff.is_org_admin if staff else False,
+            'provider_id': provider_id,
         })
 
 class RoleViewSet(viewsets.ModelViewSet):

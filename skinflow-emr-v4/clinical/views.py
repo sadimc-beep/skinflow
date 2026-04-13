@@ -70,8 +70,10 @@ class AppointmentViewSet(ClinicalBaseViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        from django.utils import timezone
         if fee_waiver_requested:
             appointment.status = Appointment.Status.ARRIVED
+            appointment.arrived_at = timezone.now()
             appointment.fee = fee_amount  # Store proposed fee for reference
             appointment.fee_waiver_requested = True
             appointment.fee_waiver_reason = fee_waiver_reason
@@ -81,6 +83,7 @@ class AppointmentViewSet(ClinicalBaseViewSet):
 
         # Normal check-in (or re-check-in after waiver denied)
         appointment.status = Appointment.Status.ARRIVED
+        appointment.arrived_at = timezone.now()
         appointment.fee = fee_amount
         appointment.fee_waiver_requested = False
         appointment.fee_waiver_reason = ''
