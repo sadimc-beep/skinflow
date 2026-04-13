@@ -1,14 +1,16 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { format, parseISO } from 'date-fns';
 import { clinicalApi } from '@/lib/services/clinical';
+import { billingApi } from '@/lib/services/billing';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Play, CheckCircle, FileText, Camera, AlertTriangle, ChevronRight, Lock, Images } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Play, CheckCircle, FileText, Camera, AlertTriangle, ChevronRight, Lock, Images, Save, Ticket } from 'lucide-react';
 import { toast } from 'sonner';
 import { BotoxForm } from './SpecializedForms/BotoxForm';
 import { FillerForm } from './SpecializedForms/FillerForm';
@@ -17,7 +19,7 @@ import { ClinicalRequisitionForm } from './ClinicalRequisitionForm';
 import { ConsentSigningModal } from '@/components/sf/ConsentSigningModal';
 import { CameraCapture } from '@/components/sf/CameraCapture';
 import { MultiAngleCapture } from '@/components/sf/MultiAngleCapture';
-import type { ProcedureSession } from '@/types/models';
+import type { ProcedureSession, Entitlement } from '@/types/models';
 import Link from 'next/link';
 
 function getStatusBadge(status: string) {
@@ -47,15 +49,60 @@ export function SessionDetailClient({ initialData }: { initialData: ProcedureSes
     const [showMultiCapture, setShowMultiCapture] = useState(false);
     const [multiCaptureCategory, setMultiCaptureCategory] = useState<'PRE_SESSION' | 'POST_SESSION'>('PRE_SESSION');
 
+    // Entitlement fallback selector — only needed when no entitlement is linked
+    const [availableEntitlements, setAvailableEntitlements] = useState<Entitlement[]>([]);
+    const [selectedEntitlementId, setSelectedEntitlementId] = useState<string>('');
+    const [isLinkingEntitlement, setIsLinkingEntitlement] = useState(false);
+
+    // Notes
+    const [notes, setNotes] = useState(session.notes ?? '');
+    const [notesDirty, setNotesDirty] = useState(false);
+    const [isSavingNotes, setIsSavingNotes] = useState(false);
+
+    const patientId = session.patient_details?.id ?? null;
+    const hasEntitlement = session.entitlement !== null;
     const hasConsent = session.consent_form !== null;
     const hasPhoto = session.clinical_photo !== null;
-    const canStart = hasConsent && hasPhoto && session.status === 'PLANNED';
+    const canStart = hasEntitlement && hasConsent && hasPhoto && session.status === 'PLANNED';
 
     const patientName = `${session.patient_details?.first_name || ''} ${session.patient_details?.last_name || ''}`.trim();
 
+    // Load available entitlements if session has no entitlement linked and is still PLANNED
+    useEffect(() => {
+        if (!hasEntitlement && session.status === 'PLANNED' && patientId) {
+            billingApi.entitlements.list({ patient: patientId, is_active: true })
+                .then(res => {
+                    const active = (res.results || []).filter((e: Entitlement) => e.remaining_qty > 0);
+                    setAvailableEntitlements(active);
+                })
+                .catch(() => {
+                    // non-fatal — selector just stays empty
+                });
+        }
+    }, [hasEntitlement, session.status, patientId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    const handleLinkEntitlement = async () => {
+        if (!selectedEntitlementId) return;
+        setIsLinkingEntitlement(true);
+        try {
+            const updated = await clinicalApi.sessions.update(session.id, { entitlement: parseInt(selectedEntitlementId) });
+            setSession(prev => ({
+                ...prev,
+                entitlement: updated.entitlement,
+                entitlement_details: updated.entitlement_details,
+                procedure_name: updated.procedure_name ?? prev.procedure_name,
+            }));
+            toast.success('Entitlement linked successfully.');
+        } catch (error: any) {
+            toast.error(error.message || 'Failed to link entitlement.');
+        } finally {
+            setIsLinkingEntitlement(false);
+        }
+    };
+
     const handleConsentSuccess = () => {
         setShowConsentModal(false);
-        setSession(prev => ({ ...prev, consent_form: -1 })); // truthy sentinel until refresh
+        setSession(prev => ({ ...prev, consent_form: -1 }));
         toast.success('Consent form signed and attached.');
         router.refresh();
     };
@@ -63,12 +110,11 @@ export function SessionDetailClient({ initialData }: { initialData: ProcedureSes
     const handleSinglePhotoCapture = async (photoId: number) => {
         setShowSingleCamera(false);
         setSession(prev => ({ ...prev, clinical_photo: photoId }));
-        // Fetch the photo URL to pass to the specialized charting forms
         try {
             const photoData = await clinicalApi.photos.get(photoId);
             setClinicalPhotoUrl(photoData.photo_url ?? null);
         } catch {
-            // Non-critical — URL is just for display in charting forms
+            // non-critical
         }
         toast.success('Clinical photo attached.');
         router.refresh();
@@ -102,7 +148,6 @@ export function SessionDetailClient({ initialData }: { initialData: ProcedureSes
     const handleCompleteSession = async () => {
         setIsUpdating(true);
         try {
-            // Updating status to COMPLETED via default update endpoint
             await clinicalApi.sessions.update(session.id, { status: 'COMPLETED' });
             setSession(prev => ({ ...prev, status: 'COMPLETED' }));
             toast.success("Session Completed");
@@ -111,6 +156,20 @@ export function SessionDetailClient({ initialData }: { initialData: ProcedureSes
             toast.error(error.message || "Failed to complete session.");
         } finally {
             setIsUpdating(false);
+        }
+    };
+
+    const handleSaveNotes = async () => {
+        setIsSavingNotes(true);
+        try {
+            await clinicalApi.sessions.update(session.id, { notes });
+            setSession(prev => ({ ...prev, notes }));
+            setNotesDirty(false);
+            toast.success("Notes saved.");
+        } catch (error: any) {
+            toast.error(error.message || "Failed to save notes.");
+        } finally {
+            setIsSavingNotes(false);
         }
     };
 
@@ -169,14 +228,16 @@ export function SessionDetailClient({ initialData }: { initialData: ProcedureSes
                 <div>
                     <h2 className="text-3xl font-bold tracking-tight">Procedure Session</h2>
                     <p className="text-muted-foreground mt-1">
-                        {format(parseISO(session.created_at), 'MMMM dd, yyyy - hh:mm a')}
+                        {session.scheduled_at
+                            ? format(parseISO(session.scheduled_at), 'MMMM dd, yyyy - hh:mm a')
+                            : format(parseISO(session.created_at), 'MMMM dd, yyyy - hh:mm a')}
                     </p>
                 </div>
                 <div>{getStatusBadge(session.status)}</div>
             </div>
 
             {/* Medical Alerts */}
-            {(session.patient_details as any)?.has_known_allergies && (
+            {session.patient_details?.has_known_allergies && (
                 <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-md flex items-start">
                     <AlertTriangle className="h-5 w-5 text-red-600 mr-3 mt-0.5 flex-shrink-0" />
                     <div>
@@ -186,7 +247,7 @@ export function SessionDetailClient({ initialData }: { initialData: ProcedureSes
                 </div>
             )}
 
-            {(session.patient_details as any)?.has_chronic_conditions && (
+            {session.patient_details?.has_chronic_conditions && (
                 <div className="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-md flex items-start">
                     <AlertTriangle className="h-5 w-5 text-amber-600 mr-3 mt-0.5 flex-shrink-0" />
                     <div>
@@ -235,8 +296,57 @@ export function SessionDetailClient({ initialData }: { initialData: ProcedureSes
                         <CardTitle className="text-lg">Pre-Session Requirements</CardTitle>
                         <CardDescription>All items must be completed before starting.</CardDescription>
                     </CardHeader>
-                    <CardContent className="space-y-6">
-                        {/* Consent */}
+                    <CardContent className="space-y-4">
+
+                        {/* 1. Entitlement */}
+                        <div className={`p-4 rounded-lg border flex flex-col gap-3 transition-colors ${hasEntitlement ? 'bg-green-50/50 border-green-200' : 'bg-slate-50 border-slate-200'}`}>
+                            <div className="flex items-center justify-between">
+                                <span className={`flex items-center font-medium ${hasEntitlement ? 'text-green-700' : 'text-slate-700'}`}>
+                                    <Ticket className={`mr-2 h-5 w-5 ${hasEntitlement ? 'text-green-600' : 'text-slate-400'}`} />
+                                    Session Entitlement
+                                </span>
+                                {hasEntitlement ? (
+                                    <Badge variant="success">
+                                        <CheckCircle className="w-3 h-3 mr-1" />
+                                        {session.entitlement_details?.procedure_name || 'Linked'} — {session.entitlement_details?.remaining_qty ?? '?'} left
+                                    </Badge>
+                                ) : (
+                                    <Badge variant="warning">Not Linked</Badge>
+                                )}
+                            </div>
+                            {!hasEntitlement && session.status === 'PLANNED' && (
+                                availableEntitlements.length > 0 ? (
+                                    <div className="flex gap-2 items-center">
+                                        <Select value={selectedEntitlementId} onValueChange={setSelectedEntitlementId}>
+                                            <SelectTrigger className="flex-1 h-9 text-sm">
+                                                <SelectValue placeholder="Select entitlement…" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {availableEntitlements.map(e => (
+                                                    <SelectItem key={e.id} value={String(e.id)}>
+                                                        {e.procedure_name || 'Procedure'} — {e.remaining_qty} of {e.total_qty} remaining
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                        <Button
+                                            size="sm"
+                                            className="h-9 shrink-0"
+                                            disabled={!selectedEntitlementId || isLinkingEntitlement}
+                                            onClick={handleLinkEntitlement}
+                                        >
+                                            Link
+                                        </Button>
+                                    </div>
+                                ) : (
+                                    <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded p-2">
+                                        No active entitlements found for this patient. Please ensure the procedure invoice is paid first.
+                                    </p>
+                                )
+                            )}
+                        </div>
+
+                        {/* 2. Consent */}
                         <div className={`p-4 rounded-lg border flex flex-col gap-3 transition-colors ${hasConsent ? 'bg-green-50/50 border-green-200' : 'bg-slate-50 border-slate-200'}`}>
                             <div className="flex items-center justify-between">
                                 <span className={`flex items-center font-medium ${hasConsent ? 'text-green-700' : 'text-slate-700'}`}>
@@ -256,7 +366,7 @@ export function SessionDetailClient({ initialData }: { initialData: ProcedureSes
                             )}
                         </div>
 
-                        {/* Photo */}
+                        {/* 3. Photo */}
                         <div className={`p-4 rounded-lg border flex flex-col gap-3 transition-colors ${hasPhoto ? 'bg-green-50/50 border-green-200' : 'bg-slate-50 border-slate-200'}`}>
                             <div className="flex items-center justify-between">
                                 <span className={`flex items-center font-medium ${hasPhoto ? 'text-green-700' : 'text-slate-700'}`}>
@@ -290,13 +400,14 @@ export function SessionDetailClient({ initialData }: { initialData: ProcedureSes
                             )}
                         </div>
 
-                        {/* Start Action */}
+                        {/* Start / Complete / Locked */}
                         <div className="pt-2 mt-2 flex justify-end">
                             {session.status === 'PLANNED' && (
                                 <Button
                                     className="w-full h-12 text-lg bg-indigo-600 hover:bg-indigo-700 shadow-md transition-all"
                                     disabled={!canStart || isUpdating}
                                     onClick={handleStartSession}
+                                    title={!hasEntitlement ? 'Link an entitlement first' : !hasConsent ? 'Collect consent first' : !hasPhoto ? 'Capture a photo first' : undefined}
                                 >
                                     <Play className="mr-2 h-5 w-5 fill-current" /> Start Session Now
                                 </Button>
@@ -320,7 +431,7 @@ export function SessionDetailClient({ initialData }: { initialData: ProcedureSes
                 </Card>
             </div>
 
-            {/* Post-Session Photos — shown while session is in progress */}
+            {/* Post-Session Photos */}
             {session.status === 'STARTED' && (
                 <Card>
                     <CardHeader>
@@ -340,15 +451,50 @@ export function SessionDetailClient({ initialData }: { initialData: ProcedureSes
                 </Card>
             )}
 
-            {/* Specialized Charting Rendered Below */}
+            {/* Specialized Charting */}
             {renderSpecializedForm()}
+
+            {/* Session Notes — shown for all procedures, writable while not COMPLETED */}
+            {session.status !== 'PLANNED' && (
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="text-lg">Session Notes</CardTitle>
+                        <CardDescription>Clinical observations, tolerability, follow-up instructions.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                        <Textarea
+                            placeholder="Enter session notes…"
+                            value={notes}
+                            onChange={(e) => { setNotes(e.target.value); setNotesDirty(true); }}
+                            disabled={isSessionReadonly}
+                            rows={4}
+                            className="resize-none"
+                        />
+                        {!isSessionReadonly && (
+                            <div className="flex items-center gap-3">
+                                <Button
+                                    size="sm"
+                                    onClick={handleSaveNotes}
+                                    disabled={!notesDirty || isSavingNotes}
+                                >
+                                    <Save className="h-4 w-4 mr-2" />
+                                    {isSavingNotes ? 'Saving…' : 'Save Notes'}
+                                </Button>
+                                {!notesDirty && notes && (
+                                    <span className="text-xs text-green-600 font-medium">Saved</span>
+                                )}
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+            )}
 
             {/* In-Session Inventory Requisition */}
             {session.status !== 'PLANNED' && (
                 <ClinicalRequisitionForm sessionId={session.id} readonly={isSessionReadonly} />
             )}
 
-            {/* ── Camera modals ── */}
+            {/* Camera modals */}
             {showSingleCamera && (
                 <CameraCapture
                     patientId={session.patient_details?.id ?? 0}
@@ -368,7 +514,6 @@ export function SessionDetailClient({ initialData }: { initialData: ProcedureSes
                     onCancel={() => setShowMultiCapture(false)}
                 />
             )}
-
         </div>
     );
 }

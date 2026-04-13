@@ -1,3 +1,4 @@
+from django.db import models
 from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -209,8 +210,27 @@ class ConsultationViewSet(ClinicalBaseViewSet):
         return response
 
 class ProcedureSessionViewSet(ClinicalBaseViewSet):
-    queryset = ProcedureSession.objects.all().select_related('appointment__patient', 'provider__user')
+    queryset = ProcedureSession.objects.all().select_related(
+        'appointment__patient', 'provider__user',
+        'entitlement__patient', 'entitlement__procedure_type',
+        'consultation__patient',
+    )
     serializer_class = ProcedureSessionSerializer
+    filterset_fields = ['provider', 'status', 'entitlement']
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        date_str = self.request.query_params.get('date')
+        if date_str:
+            qs = qs.filter(scheduled_at__date=date_str)
+        patient_id = self.request.query_params.get('patient')
+        if patient_id:
+            qs = qs.filter(
+                models.Q(appointment__patient_id=patient_id) |
+                models.Q(entitlement__patient_id=patient_id) |
+                models.Q(consultation__patient_id=patient_id)
+            )
+        return qs
 
     def perform_update(self, serializer):
         instance = serializer.save()

@@ -422,3 +422,39 @@ main                    ← Always deployable, protected
 ---
 
 *These decisions should be reviewed and validated with stakeholders. Update as actual rationale is clarified.*
+
+---
+
+## AD-021: Entitlement-to-Session Linking Strategy
+
+**Decision:** Sessions created from the patient Entitlements tab auto-link the entitlement at creation time. The entitlement selector on the session detail page is a fallback for sessions created without one (e.g., from Django admin or future API consumers).
+
+**Context:** A `ProcedureSession` must have a linked `Entitlement` before it can be started. Two creation paths exist: (1) from the patient's Entitlements tab, which pre-sets the entitlement; (2) from Django admin or direct API calls, which may not set it.
+
+**Rationale:**
+- Auto-linking on creation is the cleanest UX — therapist never needs to think about entitlements
+- Fallback selector prevents sessions from being permanently stuck if created without one
+- Backend enforcement via `enforce_entitlement_for_session()` remains the source of truth
+
+**Consequences:**
+- Frontend must pass `entitlement` when creating sessions from the Entitlements tab
+- Session detail page must handle both the linked and unlinked states
+- The `canStart` guard in the frontend mirrors backend enforcement for immediate feedback
+
+## AD-022: Session Date Filtering by scheduled_at
+
+**Decision:** The sessions list API filters by `scheduled_at__date` when `?date=` is provided. Sessions without a `scheduled_at` (e.g., admin-created) do not appear in daily views.
+
+**Context:** Daily sessions list needs to show sessions scheduled for a specific date. `scheduled_at` is optional on the model for legacy compatibility.
+
+**Rationale:** Filtering by creation date (`created_at`) is meaningless for scheduling. Sessions without `scheduled_at` are edge cases (admin-created) and should not pollute daily views.
+
+**Consequences:** Any session created without `scheduled_at` will not appear on the daily list. The session is still accessible via direct URL. The session list column shows `(created)` annotation when falling back to `created_at` for display.
+
+## AD-023: "Packages" Tab Renamed to "Entitlements"
+
+**Decision:** The "Packages" tab on the patient detail page was renamed to "Entitlements" and now shows inactive/expired entitlements in addition to active ones.
+
+**Context:** "Packages" was a marketing term that didn't match the data model. Staff found it confusing that sessions and entitlements were separate concepts with no visible connection on the patient page.
+
+**Rationale:** Aligns UI terminology with the data model and backend API. Showing expired entitlements gives reception staff full history when patients query their package usage.

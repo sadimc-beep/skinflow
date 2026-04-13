@@ -149,6 +149,7 @@ class ProcedureSessionSerializer(serializers.ModelSerializer):
     patient_details = serializers.SerializerMethodField()
     procedure_name = serializers.SerializerMethodField()
     consent_form_details = ConsentFormSerializer(source='consent_form', read_only=True)
+    entitlement_details = serializers.SerializerMethodField()
 
     class Meta:
         model = ProcedureSession
@@ -156,26 +157,42 @@ class ProcedureSessionSerializer(serializers.ModelSerializer):
         read_only_fields = ['organization']
 
     def get_patient_details(self, obj):
-        # Try appointment first, fall back to entitlement
+        # Try appointment → entitlement → consultation
         patient = None
         if obj.appointment and obj.appointment.patient:
             patient = obj.appointment.patient
         elif obj.entitlement and obj.entitlement.patient:
             patient = obj.entitlement.patient
+        elif obj.consultation and obj.consultation.patient:
+            patient = obj.consultation.patient
         if patient:
             return {
                 'id': patient.id,
                 'first_name': patient.first_name,
                 'last_name': patient.last_name,
                 'phone_primary': patient.phone_primary,
+                'has_known_allergies': patient.has_known_allergies,
+                'has_chronic_conditions': patient.has_chronic_conditions,
             }
         return None
-    
+
     def get_procedure_name(self, obj):
         if obj.entitlement and obj.entitlement.procedure_type:
             return obj.entitlement.procedure_type.name
         if obj.treatment_plan_item and obj.treatment_plan_item.procedure_type:
             return obj.treatment_plan_item.procedure_type.name
+        return None
+
+    def get_entitlement_details(self, obj):
+        if obj.entitlement:
+            ent = obj.entitlement
+            return {
+                'id': ent.id,
+                'procedure_name': ent.procedure_type.name if ent.procedure_type else None,
+                'remaining_qty': ent.remaining_qty,
+                'total_qty': ent.total_qty,
+                'used_qty': ent.used_qty,
+            }
         return None
 
 class TreatmentPlanItemSerializer(serializers.ModelSerializer):

@@ -132,7 +132,7 @@ export default function PatientDetailPage() {
                     </TabsTrigger>
                     <TabsTrigger value="packages" className="rounded-full text-xs sm:text-sm px-4">
                         <PieChartIcon className="mr-1.5 h-4 w-4" />
-                        <span className="hidden sm:inline font-bold">Packages</span>
+                        <span className="hidden sm:inline font-bold">Entitlements</span>
                     </TabsTrigger>
                 </TabsList>
 

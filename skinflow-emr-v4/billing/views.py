@@ -124,9 +124,11 @@ class EntitlementViewSet(BillingBaseViewSet):
     serializer_class = EntitlementSerializer
     
     def get_queryset(self):
-        # Filter mostly active ones
         qs = super().get_queryset()
-        patient_id = self.request.query_params.get('patient', None)
+        patient_id = self.request.query_params.get('patient')
         if patient_id:
             qs = qs.filter(patient_id=patient_id)
+        is_active = self.request.query_params.get('is_active')
+        if is_active is not None:
+            qs = qs.filter(is_active=is_active.lower() == 'true')
         return qs

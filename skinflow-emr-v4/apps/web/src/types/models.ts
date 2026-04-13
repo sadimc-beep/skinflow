@@ -196,13 +196,22 @@ export interface ProcedureSession {
     provider: number | null;
     provider_details?: Pick<Provider, 'id'> & { name: string };
     status: ProcedureSessionStatus;
+    scheduled_at: string | null;
+    notes: string;
     entitlement: number | null;
+    entitlement_details?: {
+        id: number;
+        procedure_name: string | null;
+        remaining_qty: number;
+        total_qty: number;
+        used_qty: number;
+    } | null;
     consent_form: number | null;
     clinical_photo: number | null;
     specialized_data?: Record<string, any>;
     consumable_cost?: string;
-    // Computed fields from serializer (from appointment OR entitlement)
-    patient_details?: Pick<Patient, 'id' | 'first_name' | 'last_name' | 'phone_primary'>;
+    // Computed fields from serializer (from appointment OR entitlement OR consultation)
+    patient_details?: Pick<Patient, 'id' | 'first_name' | 'last_name' | 'phone_primary' | 'has_known_allergies' | 'has_chronic_conditions'>;
     procedure_name?: string | null;
     created_at: string;
     updated_at: string;

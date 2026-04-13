@@ -11,10 +11,10 @@
 | Clinical Intake | Complete | Partial | Backend ready, UI basic |
 | Consultations | Complete | Complete | Full workflow |
 | Prescriptions | Complete | Complete | Medications, procedures, products |
-| Procedure Sessions | Complete | Complete | Daily sessions view |
+| Procedure Sessions | Complete | Complete | Full workflow; entitlement → schedule → session now functional |
 | Billing/Invoices | Complete | Complete | Partial billing, selection screen |
 | Payments | Complete | Complete | Multiple methods |
-| Entitlements | Complete | Partial | Auto-creation works, UI limited |
+| Entitlements | Complete | Complete | Auto-creation works; Schedule Session flow on patient page |
 | Inventory | Complete | Complete | Full module |
 | Accounting | Partial | Partial | Core models built, many features TO BUILD (see ACCOUNTING_SPEC.md) |
 | SaaS Platform | Complete | Complete | Superadmin portal |
@@ -158,6 +158,8 @@
 8. ~~**Multi-Tenancy Fallback**~~: Resolved — `get_current_org()` now raises `AuthenticationFailed` instead of falling back to first org; all core views require `IsAuthenticated`; global DRF default changed to `IsAuthenticated`
 9. ~~**Duplicate patient phone error**~~: Resolved — `PatientViewSet.perform_create` now catches `IntegrityError` on `(organization, phone_primary)` and returns HTTP 400 with `"A patient with this phone number already exists."`
 10. **AppointmentsListClient patientView bug**: When used inside patient detail page with `patientView=true`, the `useEffect` fetches all appointments by selected day instead of filtering by patient, overwriting the patient-specific `initialData`. Needs a `patientId` prop wired similarly to `InvoicesListClient`.
+18. **Sessions without `scheduled_at` hidden from daily list**: Sessions created directly via the API or Django admin without setting `scheduled_at` will not appear in the daily sessions list (which filters by `scheduled_at__date`). This is intentional per AD-022 but may surprise operators who create sessions manually.
+19. **`patient_details` missing `has_known_allergies`/`has_chronic_conditions` in session list**: The serializer now returns these fields, but they were previously typed as `any` on `patient_details` in `SessionDetailClient`. The type is now corrected; the allergy/condition banners will now render correctly for sessions created from entitlements (where patient is resolved via `entitlement.patient`).
 11. **Medication frequency options**: Current dropdown has 11 options. Needs more combinations — "twice daily morning & night", "alternate days", "every 6 hours", etc. Low priority.
 12. **Consultation finalize modal**: UI needs design polish. Defer to design sprint.
 13. **Print Rx button**: Not working on consultation page. Needs investigation.
@@ -236,7 +238,7 @@ Highest daily value for clinic staff.
 
 ---
 
-*Last reviewed: April 8, 2026*
+*Last reviewed: April 13, 2026*
 
 ---
 
