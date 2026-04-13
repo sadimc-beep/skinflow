@@ -163,6 +163,8 @@
 13. **Print Rx button**: Not working on consultation page. Needs investigation.
 14. **PDF download on invoices**: Not working. Print opens system dialog with HTML page. Needs proper PDF generation.
 15. **Treatment plan detail view**: Plans can be created but no way to view plan contents. Needs detail expansion or modal.
+16. **Appointment editing after arrival**: Appointment form allows changing patient, doctor, and time even after status is ARRIVED or beyond. Should lock critical fields once status passes SCHEDULED. Fields to lock: patient, provider, date_time. Fee is handled separately via waiver flow.
+17. **Cross-doctor consultation access**: Need to verify that Doctor A cannot start a consultation for Doctor B's appointment. If not enforced, add validation.
 
 ---
 
