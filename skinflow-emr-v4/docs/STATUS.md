@@ -238,7 +238,7 @@ Highest daily value for clinic staff.
 
 ---
 
-*Last reviewed: April 13, 2026 — Stage 2 complete + business rule fixes: entitlement consumed on completion (AD-024), cancellation blocked when consumables issued (AD-025), photo upload URL fixed, planned_qty duplicate guard, consent optional*
+*Last reviewed: April 13, 2026 — Stage 2 complete + business rule fixes: entitlement consumed on completion (AD-024), 3-layer capacity enforcement (perform_create/start_session/perform_update), cancellation blocked when consumables issued (AD-025), photo upload URL fixed, planned_qty duplicate guard, consent optional*
 
 ---
 

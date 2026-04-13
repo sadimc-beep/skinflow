@@ -475,7 +475,12 @@ main                    ← Always deployable, protected
 - Over-starting is still prevented: `enforce_entitlement_for_session` counts in-flight STARTED sessions against `remaining_qty` before allowing a new start.
 - The cancellation guard (AD-025) provides the complementary control: once consumables are issued, the session cannot be cancelled and must be completed.
 
-**Affected files:** `clinical/views.py` (`perform_update`, `start_session`), `billing/services.py` (`enforce_entitlement_for_session`)
+**Capacity enforcement strategy (three layers):**
+1. `perform_create`: blocks scheduling when PLANNED+STARTED sessions already exhaust `remaining_qty`
+2. `start_session`: blocks start when STARTED+COMPLETED sessions (i.e. already-consumed plus in-flight) exhaust `remaining_qty` — PLANNED sessions excluded because this session is transitioning from PLANNED
+3. `perform_update` on COMPLETED: increments `used_qty`, which updates `remaining_qty` for future checks
+
+**Affected files:** `clinical/views.py` (`perform_create`, `perform_update`, `start_session`), `billing/services.py` (`enforce_entitlement_for_session`)
 
 ---
 

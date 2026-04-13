@@ -71,6 +71,8 @@
 - [x] Entitlement consumed on COMPLETE, not START (AD-024): accidental starts no longer burn a session unit
 - [x] `enforce_entitlement_for_session` counts in-flight STARTED sessions to prevent over-starting
 - [x] Block session cancellation when requisitions are APPROVED/FULFILLED (AD-025)
+- [x] `perform_create` guard: blocks scheduling when PLANNED+STARTED sessions already exhaust entitlement capacity
+- [x] `start_session` guard: blocks start when STARTED+COMPLETED sessions exhaust capacity (airtight regardless of frontend)
 
 ### Session Types (Miracle)
 - **LHR:** Specialized LHRForm (Fitzpatrick, machine/wavelength, fluence/pulse/spot/cooling)

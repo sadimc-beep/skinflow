@@ -232,6 +232,19 @@ class ProcedureSessionViewSet(ClinicalBaseViewSet):
             )
         return qs
 
+    def perform_create(self, serializer):
+        from rest_framework.exceptions import ValidationError as DRFValidationError
+        entitlement = serializer.validated_data.get('entitlement')
+        if entitlement:
+            in_flight = ProcedureSession.objects.filter(
+                entitlement=entitlement,
+                status__in=[ProcedureSession.Status.PLANNED, ProcedureSession.Status.STARTED],
+            ).count()
+            effective_remaining = entitlement.remaining_qty - in_flight
+            if effective_remaining <= 0:
+                raise DRFValidationError("No remaining sessions available on this entitlement.")
+        super().perform_create(serializer)
+
     def perform_update(self, serializer):
         from rest_framework.exceptions import ValidationError as DRFValidationError
         prev_status = serializer.instance.status
@@ -266,11 +279,29 @@ class ProcedureSessionViewSet(ClinicalBaseViewSet):
     def start_session(self, request, pk=None):
         session = self.get_object()
 
-        # Validate entitlement (required) — does NOT consume quantity
-        from billing.services import enforce_entitlement_for_session
-        valid, message = enforce_entitlement_for_session(session)
-        if not valid:
-            return Response({'error': message}, status=status.HTTP_400_BAD_REQUEST)
+        # Entitlement required
+        if not session.entitlement:
+            return Response({'error': 'Procedure session requires a linked entitlement.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        ent = session.entitlement
+        if not ent.is_active:
+            return Response({'error': 'The linked entitlement is inactive.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Capacity check: remaining_qty tracks completed sessions via used_qty.
+        # Count already-completed sessions on this entitlement (excluding self) to
+        # determine true availability. PLANNED sessions are not counted here because
+        # this session is transitioning from PLANNED → STARTED.
+        completed_count = ProcedureSession.objects.filter(
+            entitlement=ent,
+            status=ProcedureSession.Status.COMPLETED,
+        ).exclude(pk=session.pk).count()
+        started_count = ProcedureSession.objects.filter(
+            entitlement=ent,
+            status=ProcedureSession.Status.STARTED,
+        ).exclude(pk=session.pk).count()
+        effective_remaining = ent.remaining_qty - started_count - completed_count
+        if effective_remaining <= 0:
+            return Response({'error': 'No remaining sessions available on this entitlement.'}, status=status.HTTP_400_BAD_REQUEST)
 
         # Require a clinical photo; consent is recommended but not blocking
         if not session.clinical_photo:
