@@ -328,19 +328,34 @@ def fulfill_products_for_paid_invoice(invoice):
 def enforce_entitlement_for_session(procedure_session):
     """
     Validates if a procedure session can start based on available entitlements.
+    Entitlement quantity is consumed on COMPLETE, not on start — so we count
+    in-flight STARTED sessions against remaining_qty to prevent over-starting.
     Returns (True, "Success message") or (False, "Error message")
     """
     if procedure_session.status in [procedure_session.Status.CANCELLED, procedure_session.Status.NO_SHOW]:
         return True, "Validation bypassed for cancelled/no-show status"
-        
+
     if not procedure_session.entitlement:
-        # User has not selected an entitlement to deduct from
         return False, "Procedure session requires a linked entitlement"
-        
-    if not procedure_session.entitlement.is_active or procedure_session.entitlement.remaining_qty <= 0:
-        return False, "The linked entitlement has no remaining quantity or is inactive"
-        
-    if procedure_session.treatment_plan_item and procedure_session.treatment_plan_item.procedure_type != procedure_session.entitlement.procedure_type:
+
+    ent = procedure_session.entitlement
+
+    if not ent.is_active:
+        return False, "The linked entitlement is inactive"
+
+    # Count sessions already STARTED (not yet completed) for this entitlement,
+    # excluding the current session itself, to determine effective availability.
+    from clinical.models import ProcedureSession
+    in_flight = ProcedureSession.objects.filter(
+        entitlement=ent,
+        status=ProcedureSession.Status.STARTED,
+    ).exclude(pk=procedure_session.pk).count()
+
+    effective_remaining = ent.remaining_qty - in_flight
+    if effective_remaining <= 0:
+        return False, "The linked entitlement has no remaining quantity"
+
+    if procedure_session.treatment_plan_item and procedure_session.treatment_plan_item.procedure_type != ent.procedure_type:
         return False, "Mismatch between session procedure type and entitlement procedure type"
-        
+
     return True, "Validation passed"

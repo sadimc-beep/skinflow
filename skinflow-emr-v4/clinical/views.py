@@ -233,37 +233,52 @@ class ProcedureSessionViewSet(ClinicalBaseViewSet):
         return qs
 
     def perform_update(self, serializer):
+        from rest_framework.exceptions import ValidationError as DRFValidationError
+        prev_status = serializer.instance.status
+        new_status = serializer.validated_data.get('status', prev_status)
+
+        # Guard: block cancellation when consumables have been issued
+        if new_status == ProcedureSession.Status.CANCELLED and prev_status != ProcedureSession.Status.CANCELLED:
+            from inventory.models import InventoryRequisition
+            blocked = serializer.instance.requisitions.filter(
+                status__in=[InventoryRequisition.Status.FULFILLED, InventoryRequisition.Status.APPROVED]
+            ).exists()
+            if blocked:
+                raise DRFValidationError(
+                    "Cannot cancel session — consumables have been issued. "
+                    "Complete the session or return consumables first."
+                )
+
         instance = serializer.save()
+
+        # Consume entitlement on COMPLETED (not on start)
+        if instance.status == ProcedureSession.Status.COMPLETED and prev_status != ProcedureSession.Status.COMPLETED:
+            if instance.entitlement:
+                instance.entitlement.used_qty += 1
+                instance.entitlement.save()
+
         # Auto-compute consumable cost when session transitions to COMPLETED
-        if instance.status == ProcedureSession.Status.COMPLETED:
+        if instance.status == ProcedureSession.Status.COMPLETED and prev_status != ProcedureSession.Status.COMPLETED:
             from inventory.views import _update_session_consumable_cost
             _update_session_consumable_cost(instance)
 
     @action(detail=True, methods=['post'])
     def start_session(self, request, pk=None):
         session = self.get_object()
-        
-        # Enforce business logic from billing services
+
+        # Validate entitlement (required) — does NOT consume quantity
         from billing.services import enforce_entitlement_for_session
         valid, message = enforce_entitlement_for_session(session)
-        
         if not valid:
             return Response({'error': message}, status=status.HTTP_400_BAD_REQUEST)
-            
-        # Enforce Consent & Photo requirements
-        if not session.consent_form:
-            return Response({'error': 'A signed consent form is required to start this procedure session.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Require a clinical photo; consent is recommended but not blocking
         if not session.clinical_photo:
             return Response({'error': 'A clinical photo is required to start this procedure session.'}, status=status.HTTP_400_BAD_REQUEST)
-            
+
         session.status = ProcedureSession.Status.STARTED
         session.save()
-        
-        # Deduct entitlement quantity
-        if session.entitlement:
-            session.entitlement.used_qty += 1
-            session.entitlement.save()
-            
+        # Entitlement quantity is consumed on COMPLETE, not on start
         return Response({'status': 'started'})
 
     @action(detail=True, methods=['post'])

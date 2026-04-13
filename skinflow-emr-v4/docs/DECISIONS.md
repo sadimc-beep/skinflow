@@ -458,3 +458,38 @@ main                    ← Always deployable, protected
 **Context:** "Packages" was a marketing term that didn't match the data model. Staff found it confusing that sessions and entitlements were separate concepts with no visible connection on the patient page.
 
 **Rationale:** Aligns UI terminology with the data model and backend API. Showing expired entitlements gives reception staff full history when patients query their package usage.
+
+---
+
+## AD-024: Entitlement Consumed on Session Completion, Not Start
+
+**Date:** April 13, 2026
+
+**Decision:** `entitlement.used_qty` increments (and `remaining_qty` decrements) when a `ProcedureSession` transitions to `COMPLETED`, not when it transitions to `STARTED`.
+
+**Context:** The original design consumed entitlement quantity at session start. In clinic practice, therapists occasionally hit "Start" by mistake or start a session that gets aborted for clinical reasons (patient reaction, equipment failure). Under the old model, an accidental start permanently consumed a session unit with no recovery path short of a manual DB edit.
+
+**Rationale:**
+- An entitlement represents a paid, completed service unit — completion is the correct semantic trigger.
+- Accidental or aborted starts can be corrected: status can be reverted to PLANNED without consuming the entitlement.
+- Over-starting is still prevented: `enforce_entitlement_for_session` counts in-flight STARTED sessions against `remaining_qty` before allowing a new start.
+- The cancellation guard (AD-025) provides the complementary control: once consumables are issued, the session cannot be cancelled and must be completed.
+
+**Affected files:** `clinical/views.py` (`perform_update`, `start_session`), `billing/services.py` (`enforce_entitlement_for_session`)
+
+---
+
+## AD-025: Session Cancellation Blocked When Consumables Issued
+
+**Date:** April 13, 2026
+
+**Decision:** A `ProcedureSession` cannot be set to `CANCELLED` if it has any linked `InventoryRequisition` with status `APPROVED` or `FULFILLED`.
+
+**Context:** Consumables dispensed from stock for a session represent real inventory movements. Allowing cancellation after consumables are issued would leave the stock ledger in an inconsistent state (items deducted but session voided with no return workflow).
+
+**Rationale:**
+- Enforces data integrity between clinical and inventory modules.
+- Forces staff to either complete the session or explicitly return consumables through the requisition workflow before cancelling.
+- Error message directs staff to the correct resolution path.
+
+**Affected files:** `clinical/views.py` (`perform_update`)

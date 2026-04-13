@@ -11,7 +11,7 @@
 | Clinical Intake | Complete | Partial | Backend ready, UI basic |
 | Consultations | Complete | Complete | Full workflow |
 | Prescriptions | Complete | Complete | Medications, procedures, products |
-| Procedure Sessions | Complete | Complete | Full workflow; entitlement → schedule → session now functional |
+| Procedure Sessions | Complete | Complete | Full workflow; entitlement consumed on completion (AD-024); cancellation blocked when consumables issued (AD-025) |
 | Billing/Invoices | Complete | Complete | Partial billing, selection screen |
 | Payments | Complete | Complete | Multiple methods |
 | Entitlements | Complete | Complete | Auto-creation works; Schedule Session flow on patient page |
@@ -238,7 +238,7 @@ Highest daily value for clinic staff.
 
 ---
 
-*Last reviewed: April 13, 2026 — Stage 2 complete + smoke test hotfixes: photo upload URL fixed, planned_qty duplicate guard, consent made optional for launch*
+*Last reviewed: April 13, 2026 — Stage 2 complete + business rule fixes: entitlement consumed on completion (AD-024), cancellation blocked when consumables issued (AD-025), photo upload URL fixed, planned_qty duplicate guard, consent optional*
 
 ---
 
