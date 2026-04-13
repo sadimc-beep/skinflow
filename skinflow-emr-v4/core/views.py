@@ -19,10 +19,16 @@ class OrganizationViewSet(viewsets.ReadOnlyModelViewSet):
 class ProviderViewSet(viewsets.ModelViewSet):
     queryset = Provider.objects.all().select_related('user', 'organization')
     serializer_class = ProviderSerializer
-    permission_classes = [HasRolePermission]
     permission_module = 'settings'
     pagination_class = StandardResultsSetPagination
-    
+
+    def get_permissions(self):
+        # Any authenticated org member can list/retrieve providers (needed for dropdowns)
+        # Only settings-level users can create/update/delete
+        if self.action in ('list', 'retrieve'):
+            return [permissions.IsAuthenticated()]
+        return [HasRolePermission()]
+
     def get_queryset(self):
         org = get_current_org(self.request)
         return self.queryset.filter(organization=org)
