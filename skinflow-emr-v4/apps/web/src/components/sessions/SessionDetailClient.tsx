@@ -63,7 +63,7 @@ export function SessionDetailClient({ initialData }: { initialData: ProcedureSes
     const hasEntitlement = session.entitlement !== null;
     const hasConsent = session.consent_form !== null;
     const hasPhoto = session.clinical_photo !== null;
-    const canStart = hasEntitlement && hasConsent && hasPhoto && session.status === 'PLANNED';
+    const canStart = hasEntitlement && hasPhoto && session.status === 'PLANNED';
 
     const patientName = `${session.patient_details?.first_name || ''} ${session.patient_details?.last_name || ''}`.trim();
 
@@ -346,8 +346,8 @@ export function SessionDetailClient({ initialData }: { initialData: ProcedureSes
                             )}
                         </div>
 
-                        {/* 2. Consent */}
-                        <div className={`p-4 rounded-lg border flex flex-col gap-3 transition-colors ${hasConsent ? 'bg-green-50/50 border-green-200' : 'bg-slate-50 border-slate-200'}`}>
+                        {/* 2. Consent (Recommended, not required) */}
+                        <div className={`p-4 rounded-lg border flex flex-col gap-3 transition-colors ${hasConsent ? 'bg-green-50/50 border-green-200' : 'bg-blue-50/40 border-blue-200'}`}>
                             <div className="flex items-center justify-between">
                                 <span className={`flex items-center font-medium ${hasConsent ? 'text-green-700' : 'text-slate-700'}`}>
                                     <FileText className={`mr-2 h-5 w-5 ${hasConsent ? 'text-green-600' : 'text-slate-400'}`} />
@@ -356,11 +356,11 @@ export function SessionDetailClient({ initialData }: { initialData: ProcedureSes
                                 {hasConsent ? (
                                     <Badge variant="success"><CheckCircle className="w-3 h-3 mr-1" /> Attached</Badge>
                                 ) : (
-                                    <Badge variant="warning">Pending</Badge>
+                                    <Badge variant="outline" className="text-blue-600 border-blue-300">Recommended</Badge>
                                 )}
                             </div>
                             {!hasConsent && session.status === 'PLANNED' && (
-                                <Button size="sm" onClick={() => setShowConsentModal(true)} className="h-9 self-start">
+                                <Button size="sm" variant="outline" onClick={() => setShowConsentModal(true)} className="h-9 self-start border-blue-300 text-blue-700 hover:bg-blue-50">
                                     <FileText className="h-4 w-4 mr-2" /> Collect Consent
                                 </Button>
                             )}
@@ -407,7 +407,7 @@ export function SessionDetailClient({ initialData }: { initialData: ProcedureSes
                                     className="w-full h-12 text-lg bg-indigo-600 hover:bg-indigo-700 shadow-md transition-all"
                                     disabled={!canStart || isUpdating}
                                     onClick={handleStartSession}
-                                    title={!hasEntitlement ? 'Link an entitlement first' : !hasConsent ? 'Collect consent first' : !hasPhoto ? 'Capture a photo first' : undefined}
+                                    title={!hasEntitlement ? 'Link an entitlement first' : !hasPhoto ? 'Capture a baseline photo first' : undefined}
                                 >
                                     <Play className="mr-2 h-5 w-5 fill-current" /> Start Session Now
                                 </Button>

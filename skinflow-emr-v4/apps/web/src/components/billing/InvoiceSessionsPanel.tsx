@@ -95,8 +95,8 @@ export function InvoiceSessionsPanel({ invoiceId, patientId }: Props) {
     // Don't render at all if loading or no entitlements on this invoice
     if (isLoading || entitlements.length === 0) return null;
 
-    const schedulable = entitlements.filter(e => e.remaining_qty > 0);
-    const fullyScheduled = entitlements.filter(e => e.remaining_qty === 0);
+    const schedulable = entitlements.filter(e => e.remaining_qty - (e.planned_qty ?? 0) > 0);
+    const fullyScheduled = entitlements.filter(e => e.remaining_qty - (e.planned_qty ?? 0) <= 0);
 
     return (
         <>
@@ -117,7 +117,7 @@ export function InvoiceSessionsPanel({ invoiceId, patientId }: Props) {
                             <div>
                                 <p className="font-medium text-[#1C1917] text-sm">{en.procedure_name || 'Procedure'}</p>
                                 <p className="text-xs text-[#A0978D] mt-0.5">
-                                    {en.remaining_qty} of {en.total_qty} sessions remaining
+                                    {en.remaining_qty - (en.planned_qty ?? 0)} of {en.total_qty} sessions to schedule
                                 </p>
                             </div>
                             <Button

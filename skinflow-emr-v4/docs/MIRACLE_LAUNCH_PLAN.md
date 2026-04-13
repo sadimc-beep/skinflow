@@ -4,7 +4,7 @@
 > **Client:** Miracle Aesthetics (Dr. Shaheen Sultana Jolly), Dhanmondi, Dhaka
 > **Users:** 9 (2 doctors, 2 therapists, 2 front desk, 1 store/accountant, 1 owner, 1 admin/Minhaz)
 > **Plan:** Starter (~10 patients/day)
-> **Last Updated:** April 13, 2026 (Stage 2 complete)
+> **Last Updated:** April 13, 2026 (Stage 2 + smoke test hotfixes complete)
 
 ---
 
@@ -60,6 +60,12 @@
 - [x] "My Sessions" / "All Sessions" toggle on sessions list
 - [x] Default to "My Sessions" for providers
 - [x] Provider filter on session list API
+
+### Phase 4 — Smoke Test Hotfixes (April 13)
+- [x] Fix photo upload 404 (CameraCapture URL: `clinical/sessions/` → `clinical/procedure-sessions/`)
+- [x] Duplicate session guard (`planned_qty` field on Entitlement; frontend disables Schedule when all sessions planned)
+- [x] Consent made optional for launch (removed from `canStart`; UI changed to "Recommended" framing)
+- [x] `defaultProviderId` prop on `PatientEntitlements` for pre-selecting therapist in schedule dialog
 
 ### Session Types (Miracle)
 - **LHR:** Specialized LHRForm (Fitzpatrick, machine/wavelength, fluence/pulse/spot/cooling)

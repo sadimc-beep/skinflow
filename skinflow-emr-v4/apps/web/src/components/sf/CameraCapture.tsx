@@ -211,7 +211,7 @@ export function CameraCapture({
 
         let url: string;
         if (sessionId) {
-            url = `${base}/api/clinical/sessions/${sessionId}/upload_photo/`;
+            url = `${base}/api/clinical/procedure-sessions/${sessionId}/upload_photo/`;
         } else {
             formData.append('patient', String(patientId));
             url = `${base}/api/clinical/photos/`;

@@ -238,7 +238,7 @@ Highest daily value for clinic staff.
 
 ---
 
-*Last reviewed: April 13, 2026 — Stage 2 (Procedure Sessions) complete*
+*Last reviewed: April 13, 2026 — Stage 2 complete + smoke test hotfixes: photo upload URL fixed, planned_qty duplicate guard, consent made optional for launch*
 
 ---
 

@@ -27,7 +27,7 @@ interface ScheduleDialogState {
     roomId: string;
 }
 
-export function PatientEntitlements({ patientId, consultationId }: { patientId: number, consultationId?: number }) {
+export function PatientEntitlements({ patientId, consultationId, defaultProviderId }: { patientId: number, consultationId?: number, defaultProviderId?: number }) {
     const router = useRouter();
     const [entitlements, setEntitlements] = useState<any[]>([]);
     const [providers, setProviders] = useState<Provider[]>([]);
@@ -62,7 +62,7 @@ export function PatientEntitlements({ patientId, consultationId }: { patientId: 
             procedureName: en.procedure_name || 'Procedure',
             date: todayDate,
             time: nowTime,
-            providerId: '',
+            providerId: defaultProviderId ? String(defaultProviderId) : '',
             roomId: '',
         });
     };
@@ -149,7 +149,7 @@ export function PatientEntitlements({ patientId, consultationId }: { patientId: 
                                             </p>
                                         </div>
                                         <Badge variant="outline" className="bg-[#F7F3ED] text-[#C4A882] border-[#C4A882]/30 px-3 py-1">
-                                            {en.remaining_qty} Sessions Left
+                                            {en.remaining_qty - (en.planned_qty ?? 0)} Sessions Left
                                         </Badge>
                                     </div>
                                     <div className="mt-4 pt-4 border-t border-[#E8E1D6] grid grid-cols-3 text-center divide-x divide-[#E8E1D6]">
@@ -169,7 +169,7 @@ export function PatientEntitlements({ patientId, consultationId }: { patientId: 
                                     <div className="mt-4">
                                         <Button
                                             className="w-full bg-[#1C1917] hover:bg-[#3E3832] text-white rounded-xl h-11 font-bold transition-transform active:scale-95"
-                                            disabled={en.remaining_qty <= 0}
+                                            disabled={en.remaining_qty - (en.planned_qty ?? 0) <= 0}
                                             onClick={() => openScheduleDialog(en)}
                                         >
                                             <CalendarPlus className="mr-2 h-5 w-5" />
