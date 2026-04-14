@@ -1,7 +1,7 @@
 # Implementation Status
 
 > **Source:** Inferred from codebase and PROJECT_STATUS.md (April 2026). UI verified against PDF screenshots.
-> **Last reviewed:** April 13, 2026
+> **Last reviewed:** April 14, 2026
 
 ## Summary
 
@@ -18,7 +18,7 @@
 | Entitlements | Complete | Complete | Auto-creation works; Schedule Session flow on patient page |
 | Inventory | Complete | Complete | Full module; GRN confirm bugs fixed (AD-026); Adjust Stock UI added |
 | Fulfillment Queue | Complete | Complete | Manual handover queue; auto-deducts stock on Hand Over when product FK is set (AD-026) |
-| Accounting | Partial | Partial | Core models built, many features TO BUILD (see ACCOUNTING_SPEC.md) |
+| Accounting | Substantially Complete | Substantially Complete | Stage 4 hardening done: granular account mapping, COGS hooks, hardened JE posting (April 14, 2026) |
 | SaaS Platform | Complete | Complete | Superadmin portal |
 | Authentication | Complete | Complete | JWT login |
 | RBAC | Substantially Complete | Substantially Complete | Enforcement in place; granular frontend permission checks remain |
@@ -88,12 +88,21 @@
 
 ### Partially Built Features
 
-#### Accounting Module
-- Backend: Core models (Account, JournalEntry, BankAccount, BankReconciliation) built
-- Backend: Basic automated journal posting (invoice, payment, GRN, vendor payment, CC settlement)
-- Frontend: Chart of Accounts CRUD, Journal list, Basic reports (Trial Balance, P&L, Balance Sheet, GL)
-- Added: Bank statement import (CSV/OFX), auto-matching with tolerance, manual match/ignore, Create JE + auto-match dialog, recon summary math
-- Missing: Granular account sub-types, approval workflows, fiscal period management, AR/AP aging, write-offs, tax handling, scheduled reports, full audit trail
+#### Accounting Module (Stage 4 complete — April 14, 2026)
+- Backend: Core models (Account, JournalEntry, BankAccount, BankReconciliation)
+- Backend: All 4 automated journal hooks fire correctly (invoice → payment → GRN → vendor payment)
+- Backend: Granular account mapping — 13 FK fields on ClinicSettings (AR, AP, Consultation/Procedure/Product Revenue, Product COGS, Procedure COGS, Cash, Bank, bKash, Nagad, Inventory)
+- Backend: `post_invoice_revenue` now posts per-item-type revenue (multi-line JE); falls back to generic revenue account if granular not configured
+- Backend: `post_patient_payment` routes BKASH → bKash account, NAGAD → Nagad account
+- Backend: New `post_product_cogs` hook fires on product fulfillment handover (billing/views.py)
+- Backend: New `post_procedure_cogs` hook fires on consumable requisition fulfillment (inventory/views.py)
+- Backend: `get_system_account` no longer auto-creates junk accounts — returns None + warning log if unconfigured
+- Backend: `seed_bd_clinic_accounts` management command — creates full 35-account BD clinic CoA and auto-maps all 13 ClinicSettings fields
+- Frontend: Manual Journal Entry creation works (balanced, multi-line, validates balance before posting)
+- Frontend: Account Mapping modal (Journal Entries page → "Account Mapping" button) — 5 groups, all 13 fields
+- Frontend: Trial Balance, P&L, Balance Sheet, General Ledger — all working
+- Frontend: Bank account setup, statement import, auto-match, manual match/ignore, reconciliation
+- Missing (post-launch): fiscal period management, AR/AP aging, write-offs, tax handling, scheduled reports, full audit trail
 - See: `docs/ACCOUNTING_SPEC.md` for full requirements
 
 #### Clinical Intake UI

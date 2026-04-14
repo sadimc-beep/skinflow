@@ -144,6 +144,17 @@ class InvoiceItemViewSet(BillingBaseViewSet):
                             stock_item.quantity -= item.quantity
                             stock_item.save()
                             stock_deducted = True
+
+                            # [ACCOUNTING HOOK] Post Product COGS
+                            if pp.product.cost_price and pp.product.cost_price > 0:
+                                from decimal import Decimal
+                                cogs_amount = Decimal(str(item.quantity)) * pp.product.cost_price
+                                AccountingService.post_product_cogs(
+                                    organization=org,
+                                    amount=cogs_amount,
+                                    reference_id=item.id,
+                                    description=f"Product COGS: {item.description}",
+                                )
                 except PrescriptionProduct.DoesNotExist:
                     pass
 

@@ -72,21 +72,66 @@ class ClinicSettings(TimeStampedModel):
     
     # Ledger Mappings for automated double-entry accounting
     # Use string references to avoid circular imports during app initialization
+    # ── Receivables & Payables ─────────────────────────────────────────────
     default_ar_account = models.ForeignKey(
         'accounting.Account', on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='+', help_text="Default asset account for Accounts Receivable (A/R)"
-    )
-    default_revenue_account = models.ForeignKey(
-        'accounting.Account', on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='+', help_text="Default income account for Sales Revenue"
+        related_name='+', help_text="Accounts Receivable (DR on invoice, CR on payment)"
     )
     default_ap_account = models.ForeignKey(
         'accounting.Account', on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='+', help_text="Default liability account for Accounts Payable (A/P)"
+        related_name='+', help_text="Accounts Payable (CR on GRN, DR on vendor payment)"
     )
+
+    # ── Revenue (granular by source) ───────────────────────────────────────
+    default_revenue_account = models.ForeignKey(
+        'accounting.Account', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='+', help_text="Generic revenue fallback (used if granular accounts not set)"
+    )
+    default_consultation_revenue_account = models.ForeignKey(
+        'accounting.Account', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='+', help_text="Revenue account for consultation fees"
+    )
+    default_procedure_revenue_account = models.ForeignKey(
+        'accounting.Account', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='+', help_text="Revenue account for procedure sessions"
+    )
+    default_product_revenue_account = models.ForeignKey(
+        'accounting.Account', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='+', help_text="Revenue account for product / pharmacy sales"
+    )
+
+    # ── Cost of Goods Sold ─────────────────────────────────────────────────
+    default_product_cogs_account = models.ForeignKey(
+        'accounting.Account', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='+', help_text="COGS account debited when products are fulfilled from stock"
+    )
+    default_procedure_cogs_account = models.ForeignKey(
+        'accounting.Account', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='+', help_text="COGS account debited when consumables are issued via requisition"
+    )
+
+    # ── Payment Method Accounts ────────────────────────────────────────────
+    default_cash_account = models.ForeignKey(
+        'accounting.Account', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='+', help_text="Asset account for cash payments received"
+    )
+    default_bank_account = models.ForeignKey(
+        'accounting.Account', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='+', help_text="Asset account for card / bank transfer payments"
+    )
+    default_bkash_account = models.ForeignKey(
+        'accounting.Account', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='+', help_text="Asset account for bKash payments"
+    )
+    default_nagad_account = models.ForeignKey(
+        'accounting.Account', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='+', help_text="Asset account for Nagad payments"
+    )
+
+    # ── Inventory ──────────────────────────────────────────────────────────
     default_inventory_account = models.ForeignKey(
         'accounting.Account', on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='+', help_text="Default asset account for Inventory"
+        related_name='+', help_text="Asset account for inventory (CR when stock consumed)"
     )
 
     def __str__(self):

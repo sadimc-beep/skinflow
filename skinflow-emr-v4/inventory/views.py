@@ -233,6 +233,21 @@ class InventoryRequisitionViewSet(InventoryBaseViewSet):
         if requisition.session_id:
             _update_session_consumable_cost(requisition.session)
 
+        # [ACCOUNTING HOOK] Post Procedure/Consumables COGS
+        from decimal import Decimal
+        from accounting.services import AccountingService
+        cogs_amount = sum(
+            (line.quantity_fulfilled or 0) * (line.product.cost_price or Decimal('0.00'))
+            for line in requisition.lines.all()
+        )
+        if cogs_amount > 0:
+            AccountingService.post_procedure_cogs(
+                organization=org,
+                amount=Decimal(str(cogs_amount)),
+                reference_id=requisition.id,
+                description=f"Consumables COGS: REQ-{requisition.id}",
+            )
+
         return Response({"detail": "Requisition fulfilled successfully.", "status": requisition.status})
 
 class InventoryRequisitionLineViewSet(InventoryBaseViewSet):

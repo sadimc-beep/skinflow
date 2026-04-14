@@ -4,8 +4,9 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Search, Plus, Loader2, Trash2, Settings, Undo2 } from 'lucide-react';
+import { Search, Plus, Loader2, Trash2, Settings, Undo2, GitMerge } from 'lucide-react';
 import { accountingApi } from '@/lib/services/accounting';
+import { AccountMappingModal } from './AccountMappingModal';
 import toast from 'react-hot-toast';
 import { formatCurrency } from '@/lib/utils/formatters';
 import { Button } from "@/components/ui/button";
@@ -20,6 +21,7 @@ export function JournalEntriesClient() {
     const [settings, setSettings] = useState<any>({});
 
     const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+    const [isMappingModalOpen, setIsMappingModalOpen] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [formData, setFormData] = useState({
         date: new Date().toISOString().split('T')[0],
@@ -149,6 +151,10 @@ export function JournalEntriesClient() {
             <div className="flex justify-between items-center bg-transparent mb-2">
                 <h2 className="text-3xl font-serif text-[#1C1917]">Journal Entries</h2>
                 <div className="flex gap-3">
+                    <Button variant="outline" onClick={() => setIsMappingModalOpen(true)} className="h-12 px-6 rounded-xl font-bold bg-white border-[#D9D0C5] text-[#1C1917] hover:bg-[#F7F3ED] shadow-sm">
+                        <GitMerge className="h-5 w-5 mr-2" />
+                        Account Mapping
+                    </Button>
                     <Button variant="outline" onClick={() => setIsSettingsModalOpen(true)} className="h-12 px-6 rounded-xl font-bold bg-white border-[#D9D0C5] text-[#1C1917] hover:bg-[#F7F3ED] shadow-sm">
                         <Settings className="h-5 w-5 mr-2" />
                         Settings
@@ -238,6 +244,12 @@ export function JournalEntriesClient() {
                     </Table>
                 </CardContent>
             </Card>
+
+            <AccountMappingModal
+                open={isMappingModalOpen}
+                onOpenChange={setIsMappingModalOpen}
+                accounts={accounts}
+            />
 
             <Dialog open={isSettingsModalOpen} onOpenChange={setIsSettingsModalOpen}>
                 <DialogContent className="sm:max-w-[500px] bg-white border-[#E8E1D6] rounded-3xl p-8 shadow-xl">

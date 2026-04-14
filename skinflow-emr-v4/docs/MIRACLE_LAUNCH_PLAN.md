@@ -4,7 +4,7 @@
 > **Client:** Miracle Aesthetics (Dr. Shaheen Sultana Jolly), Dhanmondi, Dhaka
 > **Users:** 9 (2 doctors, 2 therapists, 2 front desk, 1 store/accountant, 1 owner, 1 admin/Minhaz)
 > **Plan:** Starter (~10 patients/day)
-> **Last Updated:** April 13, 2026 (Stage 3 billing + inventory hardening complete)
+> **Last Updated:** April 14, 2026 (Stage 4 accounting readiness complete)
 
 ---
 
@@ -96,14 +96,21 @@
 
 ---
 
-## Stage 4: Accounting Readiness (April 24-25)
+## Stage 4: Accounting Readiness (April 14) — COMPLETE ✅
 
-- [ ] Verify automated journal entries fire correctly (invoice → payment → GRN → vendor payment)
-- [ ] Chart of accounts seeded for Miracle (BD clinic standard)
-- [ ] Manual journal entry creation works (for opening balances, cost entries)
-- [ ] Trial Balance / P&L / Balance Sheet reports generate correctly
-- [ ] Bank account setup (Miracle's actual bank accounts)
-- [ ] Verify Store/Accountant role can access only accounting + billing + inventory
+- [x] Automated journal entries fire correctly for all 4 triggers (invoice, payment, GRN, vendor payment)
+- [x] Granular account mapping: 13 ClinicSettings FK fields (Consultation/Procedure/Product Revenue, Product & Procedure COGS, Cash/Bank/bKash/Nagad, AR, AP, Inventory)
+- [x] `post_invoice_revenue` splits revenue by item type into a multi-line balanced JE
+- [x] `post_patient_payment` routes BKASH → bKash account, NAGAD → Nagad account
+- [x] New COGS hooks: `post_product_cogs` (product fulfillment) + `post_procedure_cogs` (consumable requisitions)
+- [x] `get_system_account` hardened — returns None + warning log if unconfigured (no junk account creation)
+- [x] `seed_bd_clinic_accounts` management command — 35 BD clinic accounts + auto-maps all 13 fields
+- [x] Account Mapping UI: "Account Mapping" button on Journals page, 5-group modal
+- [x] Manual journal entry creation works (opening balances, adjustments)
+- [x] Trial Balance / P&L (Income Statement) / Balance Sheet / General Ledger — all working
+- [ ] Run `python manage.py seed_bd_clinic_accounts --org-id <miracle-org-id>` during Stage 5 onboarding
+- [ ] Bank account setup (Miracle's actual bank accounts: City Bank, bKash merchant, cash)
+- [ ] Verify Store/Accountant role has accounting module access in role permissions
 
 ---
 

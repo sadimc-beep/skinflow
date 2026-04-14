@@ -1,81 +1,179 @@
+"""
+Management command: seed_bd_clinic_accounts
+
+Creates a standard Bangladesh aesthetic-clinic Chart of Accounts for a given
+organisation and auto-maps all ClinicSettings account FK fields.
+
+Usage:
+    python manage.py seed_bd_clinic_accounts
+    python manage.py seed_bd_clinic_accounts --org-id 3
+    python manage.py seed_bd_clinic_accounts --dry-run
+"""
 from django.core.management.base import BaseCommand
 from accounting.models import Account
-from core.models import Organization
+from core.models import Organization, ClinicSettings
+
 
 class Command(BaseCommand):
-    help = 'Seeds the Chart of Accounts with standard accounts for a Skin Clinic in Bangladesh'
+    help = 'Seed Chart of Accounts for a BD aesthetic clinic and auto-map ClinicSettings account fields'
+
+    def add_arguments(self, parser):
+        parser.add_argument(
+            '--org-id', type=int, default=None,
+            help='Organisation ID to seed. Defaults to the first organisation.',
+        )
+        parser.add_argument(
+            '--dry-run', action='store_true',
+            help='Print what would be created without writing to the database.',
+        )
 
     def handle(self, *args, **options):
-        org = Organization.objects.first()
-        if not org:
-            self.stdout.write(self.style.ERROR('No organization found. Please create an organization first.'))
-            return
+        org_id = options.get('org_id')
+        dry_run = options.get('dry_run', False)
 
-        self.stdout.write(self.style.SUCCESS(f'Seeding accounts for {org.name}...'))
+        if org_id:
+            try:
+                org = Organization.objects.get(id=org_id)
+            except Organization.DoesNotExist:
+                self.stdout.write(self.style.ERROR(f'Organisation id={org_id} not found.'))
+                return
+        else:
+            org = Organization.objects.first()
+            if not org:
+                self.stdout.write(self.style.ERROR('No organisation found. Create one first.'))
+                return
+
+        self.stdout.write(self.style.SUCCESS(f'Seeding accounts for: {org.name} (id={org.id})'))
+        if dry_run:
+            self.stdout.write(self.style.WARNING('DRY RUN — nothing will be written.'))
+
+        # ── Account definitions ──────────────────────────────────────────
+        # Each tuple: (code, name, account_type, system_code, description)
+        A = Account.Type.ASSET
+        L = Account.Type.LIABILITY
+        E = Account.Type.EQUITY
+        R = Account.Type.REVENUE
+        X = Account.Type.EXPENSE
 
         accounts_data = [
-            # ASSETS
-            {'name': 'Cash on Hand', 'code': '1000', 'type': Account.Type.ASSET, 'sys': 'SYS_CASH_ON_HAND', 'desc': 'Physical cash kept at the front desk or clinic'},
-            {'name': 'bKash Merchant Account', 'code': '1010', 'type': Account.Type.ASSET, 'sys': 'SYS_BKASH_HOLDING', 'desc': 'Mobile financial services holding account'},
-            {'name': 'Nagad Merchant Account', 'code': '1011', 'type': Account.Type.ASSET, 'sys': 'SYS_NAGAD_HOLDING', 'desc': 'Mobile financial services holding account'},
-            {'name': 'City Bank Current A/C', 'code': '1020', 'type': Account.Type.ASSET, 'sys': 'SYS_BANK_MAIN', 'desc': 'Main operational bank account'},
-            {'name': 'Dutch-Bangla Bank A/C', 'code': '1021', 'type': Account.Type.ASSET, 'sys': '', 'desc': 'Secondary operational bank account'},
-            {'name': 'Eastern Bank Ltd (EBL) A/C', 'code': '1022', 'type': Account.Type.ASSET, 'sys': '', 'desc': 'Credit card settlement bank account'},
-            {'name': 'Accounts Receivable', 'code': '1100', 'type': Account.Type.ASSET, 'sys': 'SYS_AR', 'desc': 'Money owed by patients or corporate clients'},
-            {'name': 'Inventory Asset (Pharmacy & Consumables)', 'code': '1200', 'type': Account.Type.ASSET, 'sys': 'SYS_INVENTORY', 'desc': 'Stock on hand across all clinics'},
-            {'name': 'Prepaid Rent', 'code': '1300', 'type': Account.Type.ASSET, 'sys': '', 'desc': 'Advance rent paid for clinic premises'},
-            {'name': 'Clinical Equipment (Lasers, Devices)', 'code': '1500', 'type': Account.Type.ASSET, 'sys': '', 'desc': 'High-value medical aesthetic machines'},
-            {'name': 'Accumulated Depreciation - Equipment', 'code': '1501', 'type': Account.Type.ASSET, 'sys': '', 'desc': 'Depreciation for medical devices'},
+            # ── ASSETS ───────────────────────────────────────────────────
+            ('1000', 'Cash on Hand',                      A, 'SYS_CASH',       'Physical cash at front desk / clinic safe'),
+            ('1010', 'bKash Merchant Account',             A, 'SYS_BKASH',      'bKash MFS merchant wallet'),
+            ('1011', 'Nagad Merchant Account',             A, 'SYS_NAGAD',      'Nagad MFS merchant wallet'),
+            ('1020', 'Bank Account (Main)',                A, 'SYS_BANK',       'Primary operational bank account (card settlements, transfers)'),
+            ('1021', 'Bank Account (Secondary)',           A, '',               'Secondary bank account'),
+            ('1100', 'Accounts Receivable',               A, 'SYS_AR',         'Money owed by patients or corporate clients'),
+            ('1200', 'Inventory Asset',                   A, 'SYS_INVENTORY',  'Stock on hand: medicines, consumables, retail products'),
+            ('1300', 'Prepaid Expenses',                  A, '',               'Advance rent, advance insurance, etc.'),
+            ('1500', 'Clinical Equipment',                A, '',               'Lasers, RF devices, aesthetic machines'),
+            ('1501', 'Accumulated Depreciation',          A, '',               'Contra asset — accumulated equipment depreciation'),
 
-            # LIABILITIES
-            {'name': 'Accounts Payable (Vendors)', 'code': '2000', 'type': Account.Type.LIABILITY, 'sys': 'SYS_AP', 'desc': 'Money owed to suppliers for medicines & consumables'},
-            {'name': 'VAT Payable (Mushak 6.3)', 'code': '2100', 'type': Account.Type.LIABILITY, 'sys': 'SYS_VAT', 'desc': 'VAT collected from patients to be paid to NBR'},
-            {'name': 'Tax Deducted at Source (TDS)', 'code': '2110', 'type': Account.Type.LIABILITY, 'sys': '', 'desc': 'AIT/TDS on rent, salaries to be paid to NBR'},
-            {'name': 'Doctor & Consultant Fees Payable', 'code': '2200', 'type': Account.Type.LIABILITY, 'sys': '', 'desc': 'Share/fees owed to visiting doctors'},
-            {'name': 'Salaries Payable', 'code': '2300', 'type': Account.Type.LIABILITY, 'sys': '', 'desc': 'Accrued staff salaries'},
-            {'name': 'Bank Loan / SME Liability', 'code': '2500', 'type': Account.Type.LIABILITY, 'sys': '', 'desc': 'Long term clinic setup loans'},
+            # ── LIABILITIES ───────────────────────────────────────────────
+            ('2000', 'Accounts Payable',                  L, 'SYS_AP',         'Money owed to product / consumable vendors'),
+            ('2100', 'VAT Payable',                       L, '',               'VAT collected from patients, payable to NBR'),
+            ('2110', 'Tax Deducted at Source (TDS/AIT)',  L, '',               'TDS on rent / professional fees payable to NBR'),
+            ('2200', 'Doctor & Consultant Fees Payable',  L, '',               'Revenue-share owed to visiting doctors'),
+            ('2300', 'Salaries Payable',                  L, '',               'Accrued staff salaries'),
+            ('2500', 'Bank Loan / SME Liability',         L, '',               'Long-term clinic setup loans'),
 
-            # EQUITY
-            {'name': "Owner's Capital", 'code': '3000', 'type': Account.Type.EQUITY, 'sys': '', 'desc': 'Initial and ongoing investment'},
-            {'name': 'Retained Earnings', 'code': '3100', 'type': Account.Type.EQUITY, 'sys': 'SYS_RETAINED_EARNINGS', 'desc': 'Historical clinic profits'},
+            # ── EQUITY ────────────────────────────────────────────────────
+            ('3000', "Owner's Capital",                   E, '',               'Initial and subsequent owner investment'),
+            ('3100', 'Retained Earnings',                 E, 'SYS_RETAINED_EARNINGS', 'Accumulated clinic profits / losses'),
 
-            # REVENUE
-            {'name': 'Consultation Fees Revenue', 'code': '4000', 'type': Account.Type.REVENUE, 'sys': 'SYS_REVENUE', 'desc': 'Revenue from Doctor consultations'},
-            {'name': 'Laser Treatment Revenue', 'code': '4100', 'type': Account.Type.REVENUE, 'sys': '', 'desc': 'Diode, Q-Switch, CO2, etc.'},
-            {'name': 'Injectables Revenue (Botox/Filler)', 'code': '4200', 'type': Account.Type.REVENUE, 'sys': '', 'desc': 'Revenue from aesthetic injections'},
-            {'name': 'Skin Care & Pharmacy Sales', 'code': '4300', 'type': Account.Type.REVENUE, 'sys': '', 'desc': 'Retail sales of creams, serums, etc.'},
-            {'name': 'Package Sales Revenue', 'code': '4400', 'type': Account.Type.REVENUE, 'sys': '', 'desc': 'Pre-sold multi-session packages'},
+            # ── REVENUE ───────────────────────────────────────────────────
+            ('4000', 'Consultation Fee Revenue',          R, 'SYS_CONSULTATION_REVENUE', 'Doctor consultation charges'),
+            ('4100', 'Procedure Revenue',                 R, 'SYS_PROCEDURE_REVENUE',    'Laser, injectables, facials, and all billed procedures'),
+            ('4200', 'Product & Pharmacy Sales',          R, 'SYS_PRODUCT_REVENUE',      'Retail sales of creams, serums, medicines'),
+            ('4300', 'Package Sales Revenue',             R, '',               'Pre-sold multi-session packages (use sub-accounts if needed)'),
 
-            # EXPENSES
-            {'name': 'Cost of Goods Sold (COGS)', 'code': '5000', 'type': Account.Type.EXPENSE, 'sys': 'SYS_COGS', 'desc': 'Cost of products and consumables sold'},
-            {'name': 'Doctor & Specialist Fees (Revenue Share)', 'code': '5100', 'type': Account.Type.EXPENSE, 'sys': '', 'desc': 'Direct costs: payouts to doctors'},
-            {'name': 'Clinic Rent', 'code': '6000', 'type': Account.Type.EXPENSE, 'sys': '', 'desc': 'Monthly clinic premises rent'},
-            {'name': 'Staff Salaries (Nurses, Reception)', 'code': '6100', 'type': Account.Type.EXPENSE, 'sys': '', 'desc': 'Payroll for clinic staff'},
-            {'name': 'Utilities (DESCO, DPDC, WASA)', 'code': '6200', 'type': Account.Type.EXPENSE, 'sys': '', 'desc': 'Electricity, water bills'},
-            {'name': 'Marketing & Facebook Ads', 'code': '6300', 'type': Account.Type.EXPENSE, 'sys': '', 'desc': 'Digital marketing & promos'},
-            {'name': 'bKash / Credit Card Merchant Fees', 'code': '6400', 'type': Account.Type.EXPENSE, 'sys': 'SYS_MERCHANT_FEES', 'desc': 'Transaction fees deducted by gateways'},
-            {'name': 'Clinic Supplies (Syringes, Gauze, PPE)', 'code': '6500', 'type': Account.Type.EXPENSE, 'sys': '', 'desc': 'General medical supplies'},
-            {'name': 'Equipment Maintenance (Lasers)', 'code': '6600', 'type': Account.Type.EXPENSE, 'sys': '', 'desc': 'Servicing and parts for medical devices'},
-            {'name': 'Office Supplies & Printing (Pad, Rx)', 'code': '6700', 'type': Account.Type.EXPENSE, 'sys': '', 'desc': 'Stationery for clinic'},
+            # ── COST OF GOODS SOLD ────────────────────────────────────────
+            ('5000', 'Product Cost of Goods Sold',        X, 'SYS_PRODUCT_COGS',    'Cost of products handed over to patients from stock'),
+            ('5010', 'Procedure Consumables Cost',        X, 'SYS_PROCEDURE_COGS',  'Cost of consumables issued via clinical requisitions'),
+            ('5100', 'Doctor & Specialist Revenue Share', X, '',               'Direct payout to doctors as % of revenue'),
+
+            # ── OPERATING EXPENSES ────────────────────────────────────────
+            ('6000', 'Clinic Rent',                       X, '',               'Monthly premises rent'),
+            ('6100', 'Staff Salaries',                    X, '',               'Payroll for nurses, reception, store staff'),
+            ('6200', 'Utilities (DESCO / WASA)',          X, '',               'Electricity and water bills'),
+            ('6300', 'Marketing & Advertising',           X, '',               'Facebook Ads, Google Ads, promotional material'),
+            ('6400', 'Merchant & Payment Fees',           X, 'SYS_MERCHANT_FEES', 'bKash / card gateway transaction fees'),
+            ('6500', 'Clinic Supplies (PPE / Syringes)',  X, '',               'General consumable medical supplies'),
+            ('6600', 'Equipment Maintenance',             X, '',               'Laser and device servicing'),
+            ('6700', 'Office Supplies & Printing',        X, '',               'Stationery, prescription pads'),
+            ('6800', 'Depreciation Expense',              X, '',               'Periodic write-down of clinical equipment'),
         ]
 
+        # ── Create / update accounts ─────────────────────────────────────
         created_count = 0
-        for data in accounts_data:
+        code_to_account = {}
+
+        for code, name, acc_type, sys_code, desc in accounts_data:
+            if dry_run:
+                self.stdout.write(f"  [DRY RUN] {code} - {name} ({acc_type})")
+                continue
+
             acc, created = Account.objects.get_or_create(
                 organization=org,
-                code=data['code'],
+                code=code,
                 defaults={
-                    'name': data['name'],
-                    'account_type': data['type'],
-                    'description': data['desc'],
-                    'is_system_account': bool(data['sys']),
-                    'system_code': data['sys']
-                }
+                    'name':             name,
+                    'account_type':     acc_type,
+                    'description':      desc,
+                    'is_system_account': bool(sys_code),
+                    'system_code':      sys_code,
+                },
             )
+
+            # Update system_code if the account already exists but lacks it
+            if not created and sys_code and not acc.system_code:
+                acc.system_code = sys_code
+                acc.is_system_account = True
+                acc.save(update_fields=['system_code', 'is_system_account'])
+
+            code_to_account[code] = acc
+            status_label = self.style.SUCCESS('CREATED') if created else self.style.WARNING('EXISTS ')
+            self.stdout.write(f"  {status_label}  {acc.code} - {acc.name}")
             if created:
                 created_count += 1
-                self.stdout.write(self.style.SUCCESS(f"Created: {acc.code} - {acc.name}"))
-            else:
-                self.stdout.write(self.style.WARNING(f"Exists: {acc.code} - {acc.name}"))
 
-        self.stdout.write(self.style.SUCCESS(f'\nSuccessfully created {created_count} accounts.'))
+        if dry_run:
+            self.stdout.write(self.style.WARNING('\nDry run complete — database unchanged.'))
+            return
+
+        self.stdout.write(self.style.SUCCESS(f'\n{created_count} accounts created.'))
+
+        # ── Auto-map ClinicSettings ──────────────────────────────────────
+        self.stdout.write('\nAuto-mapping ClinicSettings account fields...')
+        settings, _ = ClinicSettings.objects.get_or_create(organization=org)
+
+        mapping = {
+            'default_ar_account':                   '1100',
+            'default_ap_account':                   '2000',
+            'default_revenue_account':               '4000',  # generic fallback
+            'default_consultation_revenue_account':  '4000',
+            'default_procedure_revenue_account':     '4100',
+            'default_product_revenue_account':       '4200',
+            'default_product_cogs_account':          '5000',
+            'default_procedure_cogs_account':        '5010',
+            'default_cash_account':                  '1000',
+            'default_bank_account':                  '1020',
+            'default_bkash_account':                 '1010',
+            'default_nagad_account':                 '1011',
+            'default_inventory_account':             '1200',
+        }
+
+        updated_fields = []
+        for field, code in mapping.items():
+            acc = code_to_account.get(code)
+            if acc:
+                setattr(settings, field, acc)
+                updated_fields.append(field)
+                self.stdout.write(f"  {field} → {acc.code} ({acc.name})")
+
+        if updated_fields:
+            settings.save(update_fields=updated_fields)
+            self.stdout.write(self.style.SUCCESS(f'\n{len(updated_fields)} ClinicSettings fields mapped.'))
+        else:
+            self.stdout.write(self.style.WARNING('No ClinicSettings fields updated (accounts not found).'))
+
+        self.stdout.write(self.style.SUCCESS('\nDone. Chart of accounts seeded and account mapping configured.'))
