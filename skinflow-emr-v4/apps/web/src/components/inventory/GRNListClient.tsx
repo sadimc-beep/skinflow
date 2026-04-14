@@ -47,12 +47,11 @@ export function GRNListClient() {
 
     const handleOpenReceiveModal = async () => {
         try {
-            const [posRes, locsRes] = await Promise.all([
-                inventoryApi.purchaseOrders.list({ status: 'SENT', limit: 100 }), // Fetch POs that are sent but not received
-                fetch('/api/inventory/locations/').then(r => r.json())
+            const [posRes, posResPartial, locsRes] = await Promise.all([
+                inventoryApi.purchaseOrders.list({ status: 'SENT', limit: 100 }),
+                inventoryApi.purchaseOrders.list({ status: 'PARTIALLY_RECEIVED', limit: 100 }),
+                inventoryApi.stockLocations.list(),
             ]);
-            // Also fetch PARTIALLY_RECEIVED
-            const posResPartial = await inventoryApi.purchaseOrders.list({ status: 'PARTIALLY_RECEIVED', limit: 100 });
 
             setPendingPOs([...(posRes.results || []), ...(posResPartial.results || [])]);
             setLocations(locsRes.results || []);
@@ -128,28 +127,8 @@ export function GRNListClient() {
                 }
             }
 
-            // 3. Confirm GRN (Auto-adjusts stock & updates PO)
+            // 3. Confirm GRN — backend auto-adjusts stock, updates PO, and drafts the Vendor Bill
             await inventoryApi.grns.confirm(grn.id);
-
-            // 4. Create Vendor Bill to connect to Accounts Payable
-            const billTotal = selectedPo.lines.reduce((sum: number, line: any) => {
-                const recLine = receiveLines.find(rl => rl.po_line_id === line.id);
-                if (recLine && recLine.received > 0) {
-                    return sum + (recLine.received * Number(line.unit_price));
-                }
-                return sum;
-            }, 0);
-
-            if (billTotal > 0) {
-                await inventoryApi.vendorBills.create({
-                    vendor: selectedPo.vendor,
-                    grn: grn.id,
-                    bill_number: `BILL-${grn.grn_number}`,
-                    bill_date: new Date().toISOString().split('T')[0],
-                    amount: billTotal,
-                    status: 'UNPAID'
-                });
-            }
 
             toast.success("Goods securely received into stock!");
             setIsReceiveModalOpen(false);

@@ -1,6 +1,7 @@
 # Implementation Status
 
 > **Source:** Inferred from codebase and PROJECT_STATUS.md (April 2026). UI verified against PDF screenshots.
+> **Last reviewed:** April 13, 2026
 
 ## Summary
 
@@ -13,9 +14,10 @@
 | Prescriptions | Complete | Complete | Medications, procedures, products |
 | Procedure Sessions | Complete | Complete | Full workflow; entitlement consumed on completion (AD-024); cancellation blocked when consumables issued (AD-025) |
 | Billing/Invoices | Complete | Complete | Partial billing, selection screen |
-| Payments | Complete | Complete | Multiple methods |
+| Payments | Complete | Complete | Multiple methods incl. split payments |
 | Entitlements | Complete | Complete | Auto-creation works; Schedule Session flow on patient page |
-| Inventory | Complete | Complete | Full module |
+| Inventory | Complete | Complete | Full module; GRN confirm bugs fixed (AD-026); Adjust Stock UI added |
+| Fulfillment Queue | Complete | Complete | Manual product handover queue; store staff marks items fulfilled (AD-026) |
 | Accounting | Partial | Partial | Core models built, many features TO BUILD (see ACCOUNTING_SPEC.md) |
 | SaaS Platform | Complete | Complete | Superadmin portal |
 | Authentication | Complete | Complete | JWT login |
@@ -41,9 +43,10 @@
 - Partial billing / selective item billing
 - Payment processing with auto-status update
 - Automatic entitlement creation on invoice PAID
-- Product fulfillment on payment
+- Product fulfillment queue: manual handover workflow via /inventory/fulfillment (AD-026)
 - Full inventory system (products, stock, locations, movements)
-- Procurement (vendors, POs, GRNs, vendor bills)
+- Procurement (vendors, POs, GRNs, vendor bills) — GRN confirm action fixed
+- Opening stock entry via Adjust Stock modal on Stock Ledger page
 - Inventory requisitions (clinical and general)
 - Basic double-entry accounting foundation (see Partial section for details)
 - Campaign/discount system
@@ -167,6 +170,7 @@
 15. **Treatment plan detail view**: Plans can be created but no way to view plan contents. Needs detail expansion or modal.
 16. **Appointment editing after arrival**: Appointment form allows changing patient, doctor, and time even after status is ARRIVED or beyond. Should lock critical fields once status passes SCHEDULED. Fields to lock: patient, provider, date_time. Fee is handled separately via waiver flow.
 17. **Cross-doctor consultation access**: Need to verify that Doctor A cannot start a consultation for Doctor B's appointment. If not enforced, add validation.
+20. **Entitlements & Sessions title**: UI rendering glitch on the section header in `PatientEntitlements` component.
 
 ---
 

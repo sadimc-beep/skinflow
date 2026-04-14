@@ -62,7 +62,7 @@ export const billingApi = {
     },
 
     invoiceItems: {
-        list: (params?: { invoice?: number; is_fulfilled?: string | boolean; reference_model?: string; limit?: number }) =>
+        list: (params?: { invoice?: number; is_fulfilled?: string | boolean; reference_model?: string; invoice__status?: string; date?: string; limit?: number }) =>
             fetchApi<PaginatedResponse<InvoiceItem>>('billing/invoice-items', { params }),
 
         markFulfilled: (id: number | string) =>

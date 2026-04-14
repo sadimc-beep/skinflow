@@ -484,6 +484,31 @@ main                    ← Always deployable, protected
 
 ---
 
+## AD-026: Product Fulfillment via Manual Queue, Not Auto-Deduction
+
+**Date:** April 13, 2026
+
+**Decision:** When an invoice transitions to PAID, product invoice items are NOT automatically marked fulfilled and stock is NOT automatically deducted. Instead, product items appear in a Fulfillment Queue (`/inventory/fulfillment`) where store/front-desk staff manually marks each item as handed over to the patient.
+
+**Context:** The original `fulfill_products_for_paid_invoice` function immediately set `is_fulfilled=True` on all product items the moment an invoice was paid, bypassing any queue and making it impossible to track whether products had actually been physically handed over. Additionally, `PrescriptionProduct` has no FK to `inventory.Product` (only a `product_name` CharField), so automatic stock deduction at payment time was technically not possible without a model change.
+
+**Rationale:**
+- Mirrors the pharmacy counter workflow: cashier takes payment at front desk, patient then goes to the store counter to collect products. These are two distinct physical steps.
+- Prevents items from being silently "fulfilled" before a staff member has actually handed them over.
+- Provides a daily queue view (filterable by date, defaults to today) so store staff know exactly what to prepare and hand out.
+- Avoids a premature data model change (adding a `product` FK to `PrescriptionProduct`) that would require a migration and consultation UI changes — deferred to a future iteration.
+
+**Stock deduction:** Because there is no FK from `PrescriptionProduct` → `inventory.Product`, the `mark_fulfilled` backend action only sets `is_fulfilled=True` and `fulfilled_at`. Manual stock deduction for sold products must be done separately via the Adjust Stock modal on the Stock Ledger page. This is acceptable for Miracle's go-live: the product catalog is small and all sold products are tracked informally.
+
+**Consequences:**
+- Products sold via prescription invoices do not auto-deduct from inventory — requires a manual OUT movement via Adjust Stock.
+- Future improvement: add `product = ForeignKey('inventory.Product', null=True)` to `PrescriptionProduct` and wire it in the consultation editor; then `mark_fulfilled` can auto-create the StockMovement OUT.
+- Fulfillment Queue is visible to anyone with `billing.read` permission (front desk and store roles).
+
+**Affected files:** `billing/services.py` (`fulfill_products_for_paid_invoice` converted to no-op), `billing/serializers.py` (added `patient_name`, `invoice_status`, `invoice_paid_at` to `InvoiceItemSerializer`), `billing/views.py` (`InvoiceItemViewSet` — added `invoice__status` and `date` filters), `components/inventory/FulfillmentListClient.tsx` (full rebuild), `app/(app)/inventory/fulfillment/page.tsx` (simplified), `components/shell/Sidebar.tsx` (Fulfillment Queue nav entry added)
+
+---
+
 ## AD-025: Session Cancellation Blocked When Consumables Issued
 
 **Date:** April 13, 2026

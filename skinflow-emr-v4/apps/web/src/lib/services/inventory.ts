@@ -38,6 +38,9 @@ export const inventoryApi = {
         create: (data: any) => fetchApi('inventory/purchase-orders/', { method: 'POST', body: JSON.stringify(data) }),
         update: (id: number, data: any) => fetchApi(`inventory/purchase-orders/${id}/`, { method: 'PATCH', body: JSON.stringify(data) }),
     },
+    stockLocations: {
+        list: (params?: Record<string, any>) => fetchApi<PaginatedResponse<any>>('inventory/locations', { params }),
+    },
     grns: {
         list: (params?: Record<string, any>) => fetchApi<PaginatedResponse<any>>('inventory/grns', { params }),
         create: (data: any) => fetchApi('inventory/grns/', { method: 'POST', body: JSON.stringify(data) }),

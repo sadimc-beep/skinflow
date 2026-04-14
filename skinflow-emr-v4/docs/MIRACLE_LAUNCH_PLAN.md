@@ -4,7 +4,7 @@
 > **Client:** Miracle Aesthetics (Dr. Shaheen Sultana Jolly), Dhanmondi, Dhaka
 > **Users:** 9 (2 doctors, 2 therapists, 2 front desk, 1 store/accountant, 1 owner, 1 admin/Minhaz)
 > **Plan:** Starter (~10 patients/day)
-> **Last Updated:** April 13, 2026 (Stage 2 + business rule fixes complete)
+> **Last Updated:** April 13, 2026 (Stage 3 billing + inventory hardening complete)
 
 ---
 
@@ -82,17 +82,17 @@
 
 ---
 
-## Stage 3: Billing + Inventory Hardening (April 21-23)
+## Stage 3: Billing + Inventory Hardening (April 13-14) — COMPLETE ✅
 
-- [ ] Split payments verification (part cash, part bKash)
-- [ ] Payment method selection (Cash/Card/bKash/Nagad) — verify UI
-- [ ] Entitlement creation on payment — verify end-to-end
-- [ ] Product fulfillment on payment — verify stock deduction
-- [ ] Invoice list with proper filtering (unpaid default ✅, date range)
-- [ ] PO creation workflow — verify full cycle
-- [ ] GRN receiving — verify full cycle
-- [ ] Stock movement tracking — verify IN/OUT/ADJUST
-- [ ] Opening stock entry capability for go-live day
+- [x] Split payments verification — works; UI supports partial amounts + multiple submissions
+- [x] Payment method selection (Cash/Card/bKash/Nagad) — verified, all present in UI and model
+- [x] Entitlement creation on payment — verified end-to-end; service chain confirmed correct
+- [x] Product fulfillment workflow — Fulfillment Queue added (/inventory/fulfillment); store staff manually marks handover; sidebar nav entry added (AD-026)
+- [ ] Invoice list with proper filtering (unpaid default ✅, date range) — date range filter deferred
+- [x] PO creation workflow — verified; GRN confirm action fixed (grn.date_received → grn.receive_date, removed invalid po= arg from VendorBill.create)
+- [x] GRN receiving — fixed; frontend no longer double-creates VendorBill; /api/inventory/locations/ wrong URL fixed
+- [x] Stock movement tracking — IN/OUT/ADJUST all work in backend
+- [x] Opening stock entry capability — Adjust Stock modal wired up on Stock Ledger page
 
 ---
 

@@ -315,15 +315,12 @@ def create_entitlements_for_paid_invoice(invoice):
 
 def fulfill_products_for_paid_invoice(invoice):
     """
-    When an invoice becomes PAID, mark products as fulfilled directly.
+    No-op: product fulfillment is now a manual step performed by store staff
+    via the Fulfillment Queue (/inventory/fulfillment).
+    Items are intentionally left is_fulfilled=False after payment so they
+    appear in the queue awaiting handover. See AD-026.
     """
-    if invoice.status != Invoice.Status.PAID:
-        return
-        
-    for item in invoice.items.filter(reference_model='PrescriptionProduct', is_fulfilled=False):
-        item.is_fulfilled = True
-        item.fulfilled_at = timezone.now()
-        item.save()
+    pass
 
 def enforce_entitlement_for_session(procedure_session):
     """

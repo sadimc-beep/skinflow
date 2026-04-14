@@ -16,6 +16,7 @@ import {
     LogOut,
     CreditCard,
     Lock,
+    PackageCheck,
 } from 'lucide-react';
 
 const mainNav = [
@@ -30,6 +31,7 @@ const clinicalNav = [
 const operationsNav = [
     { name: 'Finance', href: '/finance', icon: BookOpen, permission: 'accounting.read', activePrefixes: ['/finance', '/billing', '/accounting'], featureKey: 'accounting' },
     { name: 'Inventory', href: '/store', icon: Package, permission: 'inventory.read', activePrefixes: ['/store', '/inventory'], featureKey: 'inventory' },
+    { name: 'Fulfillment', href: '/inventory/fulfillment', icon: PackageCheck, permission: 'billing.read', activePrefixes: ['/inventory/fulfillment'] },
     { name: 'Point of Sale', href: '/pos', icon: ShoppingCart, permission: 'pos.read', activePrefixes: ['/pos'] },
 ];
 

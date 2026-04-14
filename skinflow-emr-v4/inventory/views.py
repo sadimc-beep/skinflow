@@ -346,11 +346,10 @@ class GRNViewSet(InventoryBaseViewSet):
         bill = VendorBill.objects.create(
             organization=org,
             vendor=po.vendor,
-            po=po,
             grn=grn,
             bill_number=f"BILL-{grn.grn_number}",
-            bill_date=grn.date_received,
-            due_date=grn.date_received, # Or add vendor terms logic here
+            bill_date=grn.receive_date,
+            due_date=grn.receive_date,
             amount=bill_amount,
             status=VendorBill.Status.DRAFT
         )

@@ -1,7 +1,6 @@
 "use client";
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, useCallback } from 'react';
 import { format, parseISO } from 'date-fns';
 import { billingApi } from '@/lib/services/billing';
 import {
@@ -9,95 +8,132 @@ import {
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { PackageCheck, PackageOpen } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { PackageCheck, Inbox } from 'lucide-react';
 import { toast } from 'sonner';
-import type { InvoiceItem } from '@/types/models';
 
-export function FulfillmentListClient({ initialData }: { initialData: InvoiceItem[] }) {
-    const router = useRouter();
-    // Filter to only show items that are products
-    const productItems = initialData.filter(item =>
-        item.reference_model === 'PrescriptionProduct' ||
-        item.reference_model === 'Product' ||
-        item.description.toLowerCase().includes('product') // Fallback if ref model isn't set properly
-    );
+export function FulfillmentListClient() {
+    const today = format(new Date(), 'yyyy-MM-dd');
+    const [date, setDate] = useState(today);
+    const [items, setItems] = useState<any[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [fulfilling, setFulfilling] = useState<number | null>(null);
 
-    const [items, setItems] = useState(productItems);
-    const [isUpdating, setIsUpdating] = useState(false);
-
-    const handleMarkDelivered = async (item: InvoiceItem) => {
-        setIsUpdating(true);
+    const fetchItems = useCallback(async () => {
+        setIsLoading(true);
         try {
-            const res = await billingApi.invoiceItems.markFulfilled(item.id);
-            setItems(prev => prev.map(i => i.id === item.id ? { ...i, is_fulfilled: true, fulfilled_at: res.fulfilled_at } : i));
-            toast.success("Product Marked as Delivered");
-            router.refresh();
-        } catch (error: any) {
-            toast.error(error.message || "Failed to mark fulfilled.");
+            const res = await billingApi.invoiceItems.list({
+                is_fulfilled: 'false',
+                invoice__status: 'PAID',
+                reference_model: 'PrescriptionProduct',
+                date,
+                limit: 200,
+            });
+            setItems(res.results || []);
+        } catch {
+            toast.error('Failed to load fulfillment queue.');
         } finally {
-            setIsUpdating(false);
+            setIsLoading(false);
+        }
+    }, [date]);
+
+    useEffect(() => { fetchItems(); }, [fetchItems]);
+
+    const handleFulfill = async (item: any) => {
+        setFulfilling(item.id);
+        try {
+            await billingApi.invoiceItems.markFulfilled(item.id);
+            toast.success(`${item.description} marked as handed over.`);
+            setItems(prev => prev.filter(i => i.id !== item.id));
+        } catch (error: any) {
+            toast.error(error.message || 'Failed to fulfill item.');
+        } finally {
+            setFulfilling(null);
         }
     };
 
     return (
-        <div className="space-y-4">
-            <div className="rounded-md border bg-white">
+        <div className="space-y-6">
+            {/* Date filter */}
+            <div className="flex items-center gap-3">
+                <label className="text-sm font-medium text-[#78706A] whitespace-nowrap">Filter by date:</label>
+                <Input
+                    type="date"
+                    value={date}
+                    onChange={(e) => setDate(e.target.value)}
+                    className="w-44 h-10 text-sm bg-white border-[#D9D0C5] focus-visible:ring-[#C4A882] rounded-xl"
+                />
+                {date !== today && (
+                    <button
+                        onClick={() => setDate(today)}
+                        className="text-xs text-[#C4A882] hover:text-[#1C1917] underline underline-offset-2"
+                    >
+                        Reset to today
+                    </button>
+                )}
+                <span className="ml-auto text-sm text-[#A0978D]">
+                    {isLoading ? 'Loading…' : `${items.length} item${items.length !== 1 ? 's' : ''} pending`}
+                </span>
+            </div>
+
+            <div className="bg-white border border-[#E8E1D6] rounded-2xl shadow-sm overflow-hidden">
                 <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>Invoice ID</TableHead>
-                            <TableHead>Product Name</TableHead>
-                            <TableHead>Qty</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead className="text-right">Actions</TableHead>
+                    <TableHeader className="bg-[#F7F3ED]">
+                        <TableRow className="border-b border-[#D9D0C5] hover:bg-transparent">
+                            <TableHead className="font-bold text-[#1C1917] py-4 px-6 text-sm">Patient</TableHead>
+                            <TableHead className="font-bold text-[#1C1917] py-4 px-6 text-sm">Product</TableHead>
+                            <TableHead className="font-bold text-[#1C1917] py-4 px-6 text-sm text-center">Qty</TableHead>
+                            <TableHead className="font-bold text-[#1C1917] py-4 px-6 text-sm">Invoice</TableHead>
+                            <TableHead className="font-bold text-[#1C1917] py-4 px-6 text-sm">Paid At</TableHead>
+                            <TableHead className="font-bold text-[#1C1917] py-4 px-6 text-sm text-right">Action</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {items.length === 0 ? (
+                        {isLoading ? (
                             <TableRow>
-                                <TableCell colSpan={5} className="h-24 text-center">
-                                    No pending products for fulfillment.
+                                <TableCell colSpan={6} className="text-center py-12 text-[#78706A] text-sm">
+                                    Loading queue…
+                                </TableCell>
+                            </TableRow>
+                        ) : items.length === 0 ? (
+                            <TableRow>
+                                <TableCell colSpan={6} className="py-16 text-center">
+                                    <div className="flex flex-col items-center gap-3 text-[#A0978D]">
+                                        <Inbox className="h-10 w-10 text-[#D9D0C5]" />
+                                        <p className="text-sm font-medium">No pending items for {format(parseISO(date), 'MMM d, yyyy')}.</p>
+                                    </div>
                                 </TableCell>
                             </TableRow>
                         ) : (
                             items.map((item) => (
-                                <TableRow key={item.id}>
-                                    <TableCell className="font-medium">
-                                        INV-{item.invoice.toString().padStart(4, '0')}
+                                <TableRow key={item.id} className="hover:bg-[#F7F3ED] border-b border-[#E8E1D6] transition-colors">
+                                    <TableCell className="py-4 px-6 font-semibold text-[#1C1917] text-sm">
+                                        {item.patient_name || '—'}
                                     </TableCell>
-                                    <TableCell>
-                                        {item.description}
+                                    <TableCell className="py-4 px-6 text-sm text-[#1C1917]">
+                                        {item.description.replace(/^Product:\s*/i, '')}
                                     </TableCell>
-                                    <TableCell>
+                                    <TableCell className="py-4 px-6 text-center font-bold text-[#1C1917]">
                                         {item.quantity}
                                     </TableCell>
-                                    <TableCell>
-                                        {item.is_fulfilled ? (
-                                            <Badge variant="outline" className="text-green-600 border-green-600">
-                                                Delivered on {item.fulfilled_at ? format(parseISO(item.fulfilled_at), 'MMM dd, hh:mm a') : 'Unknown'}
-                                            </Badge>
-                                        ) : (
-                                            <Badge variant="secondary" className="bg-amber-100 text-amber-800">
-                                                Pending Pickup
-                                            </Badge>
-                                        )}
+                                    <TableCell className="py-4 px-6 text-sm font-mono text-[#78706A]">
+                                        INV-{String(item.invoice).padStart(6, '0')}
                                     </TableCell>
-                                    <TableCell className="text-right space-x-2">
-                                        {!item.is_fulfilled ? (
-                                            <Button
-                                                variant="default"
-                                                size="sm"
-                                                className="bg-indigo-600 hover:bg-indigo-700"
-                                                onClick={() => handleMarkDelivered(item)}
-                                                disabled={isUpdating}
-                                            >
-                                                <PackageCheck className="mr-2 h-4 w-4" /> Handover
-                                            </Button>
-                                        ) : (
-                                            <Button variant="outline" size="sm" disabled className="text-gray-400">
-                                                <PackageOpen className="mr-2 h-4 w-4" /> Completed
-                                            </Button>
-                                        )}
+                                    <TableCell className="py-4 px-6 text-sm text-[#78706A]">
+                                        {item.invoice_paid_at
+                                            ? format(parseISO(item.invoice_paid_at), 'h:mm a')
+                                            : '—'}
+                                    </TableCell>
+                                    <TableCell className="py-4 px-6 text-right">
+                                        <Button
+                                            size="sm"
+                                            className="bg-[#1C1917] hover:bg-[#3E3832] text-white rounded-xl h-9 px-4 font-bold text-xs"
+                                            onClick={() => handleFulfill(item)}
+                                            disabled={fulfilling === item.id}
+                                        >
+                                            <PackageCheck className="mr-1.5 h-3.5 w-3.5" />
+                                            {fulfilling === item.id ? 'Handing over…' : 'Hand Over'}
+                                        </Button>
                                     </TableCell>
                                 </TableRow>
                             ))
@@ -105,6 +141,11 @@ export function FulfillmentListClient({ initialData }: { initialData: InvoiceIte
                     </TableBody>
                 </Table>
             </div>
+
+            <p className="text-xs text-[#A0978D]">
+                Showing only product items from paid invoices on the selected date.
+                After handing over, update stock manually via Inventory → Stock if needed.
+            </p>
         </div>
     );
 }

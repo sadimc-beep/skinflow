@@ -87,22 +87,29 @@ class InvoiceViewSet(BillingBaseViewSet):
         return response
 
 class InvoiceItemViewSet(BillingBaseViewSet):
-    queryset = InvoiceItem.objects.all().select_related('invoice__patient')
+    queryset = InvoiceItem.objects.all().select_related('invoice__patient', 'invoice').prefetch_related('invoice__payments')
     serializer_class = InvoiceItemSerializer
-    filterset_fields = ['invoice', 'is_fulfilled', 'reference_model']
-    
+    filterset_fields = ['invoice', 'is_fulfilled', 'reference_model', 'invoice__status']
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        date = self.request.query_params.get('date')
+        if date:
+            qs = qs.filter(invoice__created_at__date=date)
+        return qs
+
     @action(detail=True, methods=['post'])
     def mark_fulfilled(self, request, pk=None):
         item = self.get_object()
-        
+
         if item.is_fulfilled:
             return Response({'error': 'Item is already fulfilled'}, status=status.HTTP_400_BAD_REQUEST)
-            
+
         from django.utils import timezone
         item.is_fulfilled = True
         item.fulfilled_at = timezone.now()
         item.save()
-        
+
         return Response({'status': 'fulfilled', 'fulfilled_at': item.fulfilled_at})
 
 class PaymentViewSet(BillingBaseViewSet):

@@ -3,6 +3,20 @@ from .models import Invoice, InvoiceItem, Payment, Entitlement
 from patients.serializers import PatientSerializer
 
 class InvoiceItemSerializer(serializers.ModelSerializer):
+    patient_name = serializers.SerializerMethodField()
+    invoice_status = serializers.CharField(source='invoice.status', read_only=True)
+    invoice_paid_at = serializers.SerializerMethodField()
+
+    def get_patient_name(self, obj):
+        p = obj.invoice.patient
+        if not p:
+            return ''
+        return f"{p.first_name} {p.last_name}".strip()
+
+    def get_invoice_paid_at(self, obj):
+        payment = obj.invoice.payments.filter(status='COMPLETED').order_by('-created_at').first()
+        return payment.created_at.isoformat() if payment else None
+
     class Meta:
         model = InvoiceItem
         fields = '__all__'
