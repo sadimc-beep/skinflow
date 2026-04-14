@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { inventoryApi } from "@/lib/services/inventory";
+import { inventoryApi, type Product } from "@/lib/services/inventory";
 import { toast } from "sonner";
 
 const PRODUCT_TYPES = [
@@ -71,6 +71,7 @@ export function ProductsClient() {
         try {
             await inventoryApi.products.create({
                 ...form,
+                product_type: form.product_type as Product['product_type'],
                 cost_price: form.cost_price as any,
                 sale_price: form.sale_price as any,
             });
