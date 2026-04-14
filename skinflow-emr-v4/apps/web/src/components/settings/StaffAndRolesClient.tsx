@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Combobox } from "@/components/ui/combobox";
 import { Loader2, Plus, Pencil, Trash2, UserPlus, ShieldCheck, X, Check } from 'lucide-react';
 import { settingsApi } from '@/lib/services/settings';
 import toast from 'react-hot-toast';
@@ -213,14 +214,13 @@ function InviteUserModal({ roles, onClose, onSave }: { roles: any[]; onClose: ()
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-slate-700 mb-1">Assign Role</label>
-                        <Select value={form.role_id} onValueChange={v => f('role_id', v)}>
-                            <SelectTrigger><SelectValue placeholder="Select a role..." /></SelectTrigger>
-                            <SelectContent>
-                                {roles.map(r => (
-                                    <SelectItem key={r.id} value={r.id.toString()}>{r.name}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                        <Combobox
+                            options={roles.map(r => ({ value: r.id.toString(), label: r.name }))}
+                            value={form.role_id}
+                            onChange={v => f('role_id', v)}
+                            placeholder="Select a role…"
+                            searchPlaceholder="Search roles…"
+                        />
                     </div>
                 </div>
 

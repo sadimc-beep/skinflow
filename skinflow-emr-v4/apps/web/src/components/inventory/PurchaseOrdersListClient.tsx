@@ -12,9 +12,11 @@ import { formatCurrency } from "@/lib/utils/formatters";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export function PurchaseOrdersListClient() {
+    const router = useRouter();
     const [orders, setOrders] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
@@ -109,9 +111,7 @@ export function PurchaseOrdersListClient() {
                                 </TableRow>
                             ) : (
                                 orders.map((order) => (
-                                    <TableRow key={order.id} className="hover:bg-[#F7F3ED] border-b border-[#E8E1D6] group cursor-pointer transition-colors" onClick={() => {
-                                        // Optional: navigate to details page
-                                    }}>
+                                    <TableRow key={order.id} className="hover:bg-[#F7F3ED] border-b border-[#E8E1D6] group cursor-pointer transition-colors" onClick={() => router.push(`/inventory/purchase-orders/${order.id}`)}>
                                         <TableCell className="py-5 px-6">
                                             <div className="flex items-center gap-3">
                                                 <div className="bg-[#F7F3ED] p-2 rounded-lg border border-[#D9D0C5]">

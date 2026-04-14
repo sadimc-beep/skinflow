@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Combobox } from "@/components/ui/combobox";
 import { ArrowLeft, Save, Plus, Trash2, Send } from "lucide-react";
 import toast from "react-hot-toast";
 import { formatCurrency } from "@/lib/utils/formatters";
@@ -163,18 +164,13 @@ export function PurchaseOrderFormClient() {
                                 {lines.map((line, index) => (
                                     <TableRow key={index} className="hover:bg-transparent">
                                         <TableCell>
-                                            <Select value={line.productId} onValueChange={(v) => updateLine(index, 'productId', v)}>
-                                                <SelectTrigger className="w-full">
-                                                    <SelectValue placeholder="Select Product" />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    {products.map(p => (
-                                                        <SelectItem key={p.id} value={p.id.toString()}>
-                                                            {p.name}
-                                                        </SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
+                                            <Combobox
+                                                options={products.map(p => ({ value: p.id.toString(), label: p.name }))}
+                                                value={line.productId}
+                                                onChange={(v) => updateLine(index, 'productId', v)}
+                                                placeholder="Select Product"
+                                                searchPlaceholder="Search products…"
+                                            />
                                         </TableCell>
                                         <TableCell>
                                             <Input
@@ -221,16 +217,13 @@ export function PurchaseOrderFormClient() {
                         <CardContent className="p-4 space-y-4">
                             <div className="space-y-2">
                                 <Label>Vendor</Label>
-                                <Select value={vendorId} onValueChange={setVendorId}>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Select Vendor" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {vendors.map(v => (
-                                            <SelectItem key={v.id} value={v.id.toString()}>{v.name}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
+                                <Combobox
+                                    options={vendors.map(v => ({ value: v.id.toString(), label: v.name }))}
+                                    value={vendorId}
+                                    onChange={setVendorId}
+                                    placeholder="Select Vendor"
+                                    searchPlaceholder="Search vendors…"
+                                />
                             </div>
                             <div className="space-y-2">
                                 <Label>PO Number</Label>

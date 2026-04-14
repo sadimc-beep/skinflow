@@ -205,6 +205,7 @@
 
 1. **Type Safety**: Some API responses typed as `any` in TypeScript
 2. **Error Handling**: Every API mutation needs try/catch with toast error display (rule added but not fully audited)
+3. **CRUD Gaps (resolved April 14)**: Products edit/delete, Medicines CRUD, Procedure Rooms CRUD, Procedure Categories CRUD, Stock Locations CRUD, Product Categories CRUD, PO detail page — all added. All API-loaded dropdowns converted to searchable Combobox.
 3. **Loading States**: Missing or inconsistent loading indicators
 4. **Form Validation**: Client-side validation incomplete in some forms
 5. **Soft Delete**: Models use hard delete; consider soft delete for audit

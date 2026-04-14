@@ -10,6 +10,7 @@ import { settingsApi } from '@/lib/services/settings';
 import { accountingApi } from '@/lib/services/accounting';
 import { fetchApi } from '@/lib/api';
 import { mastersApi, type ProcedureType } from '@/lib/services/masters';
+import { inventoryApi } from '@/lib/services/inventory';
 import { StaffManagementTab, RolesManagementTab } from './StaffAndRolesClient';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -17,6 +18,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Pencil, Plus, Trash2 } from 'lucide-react';
+import { Combobox } from '@/components/ui/combobox';
 import toast from 'react-hot-toast';
 
 export function GlobalSettingsClient() {
@@ -116,13 +118,18 @@ export function GlobalSettingsClient() {
             </div>
 
             <Tabs defaultValue="ledger">
-                <TabsList className="h-11 rounded-full bg-[#E8E1D6] p-1 gap-1 mb-6">
-                    <TabsTrigger value="ledger" className="rounded-full px-5 font-bold text-sm">Ledger Mapping</TabsTrigger>
-                    <TabsTrigger value="users" className="rounded-full px-5 font-bold text-sm">Users</TabsTrigger>
-                    <TabsTrigger value="roles" className="rounded-full px-5 font-bold text-sm">Roles & Permissions</TabsTrigger>
-                    <TabsTrigger value="procedures" className="rounded-full px-5 font-bold text-sm">Procedure Types</TabsTrigger>
-                    <TabsTrigger value="kiosk" className="rounded-full px-5 font-bold text-sm">Kiosk Setup</TabsTrigger>
-                    <TabsTrigger value="general" className="rounded-full px-5 font-bold text-sm">General Preferences</TabsTrigger>
+                <TabsList className="h-auto rounded-2xl bg-[#E8E1D6] p-1.5 gap-1 mb-6 flex-wrap">
+                    <TabsTrigger value="ledger" className="rounded-xl px-4 font-bold text-sm">Ledger Mapping</TabsTrigger>
+                    <TabsTrigger value="users" className="rounded-xl px-4 font-bold text-sm">Users</TabsTrigger>
+                    <TabsTrigger value="roles" className="rounded-xl px-4 font-bold text-sm">Roles</TabsTrigger>
+                    <TabsTrigger value="procedures" className="rounded-xl px-4 font-bold text-sm">Procedure Types</TabsTrigger>
+                    <TabsTrigger value="proc-categories" className="rounded-xl px-4 font-bold text-sm">Procedure Categories</TabsTrigger>
+                    <TabsTrigger value="rooms" className="rounded-xl px-4 font-bold text-sm">Rooms</TabsTrigger>
+                    <TabsTrigger value="medicines" className="rounded-xl px-4 font-bold text-sm">Medicines</TabsTrigger>
+                    <TabsTrigger value="stock-locations" className="rounded-xl px-4 font-bold text-sm">Stock Locations</TabsTrigger>
+                    <TabsTrigger value="product-categories" className="rounded-xl px-4 font-bold text-sm">Product Categories</TabsTrigger>
+                    <TabsTrigger value="kiosk" className="rounded-xl px-4 font-bold text-sm">Kiosk Setup</TabsTrigger>
+                    <TabsTrigger value="general" className="rounded-xl px-4 font-bold text-sm">General</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="ledger">
@@ -143,33 +150,25 @@ export function GlobalSettingsClient() {
                                     <div className="grid gap-2">
                                         <label className="text-sm font-medium">Default Accounts Receivable (A/R) *</label>
                                         <div className="text-xs text-[#78706A] mb-1">Debited when Invoices are finalized.</div>
-                                        <Select
+                                        <Combobox
+                                            options={assetAccounts.map(a => ({ value: a.id.toString(), label: a.code ? `${a.code} — ${a.name}` : a.name }))}
                                             value={settings.default_ar_account?.toString() || ""}
-                                            onValueChange={v => setSettings({ ...settings, default_ar_account: v })}
-                                        >
-                                            <SelectTrigger><SelectValue placeholder="Select Asset Account..." /></SelectTrigger>
-                                            <SelectContent>
-                                                {assetAccounts.map(a => (
-                                                    <SelectItem key={a.id} value={a.id.toString()}>{a.code ? `${a.code} - ` : ''}{a.name}</SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
+                                            onChange={v => setSettings({ ...settings, default_ar_account: v })}
+                                            placeholder="Select Asset Account…"
+                                            searchPlaceholder="Search accounts…"
+                                        />
                                     </div>
 
                                     <div className="grid gap-2">
                                         <label className="text-sm font-medium">Default Sales Revenue *</label>
                                         <div className="text-xs text-slate-500 mb-1">Credited when Invoices are finalized.</div>
-                                        <Select
+                                        <Combobox
+                                            options={revenueAccounts.map(a => ({ value: a.id.toString(), label: a.code ? `${a.code} — ${a.name}` : a.name }))}
                                             value={settings.default_revenue_account?.toString() || ""}
-                                            onValueChange={v => setSettings({ ...settings, default_revenue_account: v })}
-                                        >
-                                            <SelectTrigger><SelectValue placeholder="Select Revenue Account..." /></SelectTrigger>
-                                            <SelectContent>
-                                                {revenueAccounts.map(a => (
-                                                    <SelectItem key={a.id} value={a.id.toString()}>{a.code ? `${a.code} - ` : ''}{a.name}</SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
+                                            onChange={v => setSettings({ ...settings, default_revenue_account: v })}
+                                            placeholder="Select Revenue Account…"
+                                            searchPlaceholder="Search accounts…"
+                                        />
                                     </div>
                                 </div>
 
@@ -179,33 +178,25 @@ export function GlobalSettingsClient() {
                                     <div className="grid gap-2">
                                         <label className="text-sm font-medium">Default Accounts Payable (A/P) *</label>
                                         <div className="text-xs text-slate-500 mb-1">Credited when Vendor Bills are generated from GRNs.</div>
-                                        <Select
+                                        <Combobox
+                                            options={liabilityAccounts.map(a => ({ value: a.id.toString(), label: a.code ? `${a.code} — ${a.name}` : a.name }))}
                                             value={settings.default_ap_account?.toString() || ""}
-                                            onValueChange={v => setSettings({ ...settings, default_ap_account: v })}
-                                        >
-                                            <SelectTrigger><SelectValue placeholder="Select Liability Account..." /></SelectTrigger>
-                                            <SelectContent>
-                                                {liabilityAccounts.map(a => (
-                                                    <SelectItem key={a.id} value={a.id.toString()}>{a.code ? `${a.code} - ` : ''}{a.name}</SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
+                                            onChange={v => setSettings({ ...settings, default_ap_account: v })}
+                                            placeholder="Select Liability Account…"
+                                            searchPlaceholder="Search accounts…"
+                                        />
                                     </div>
 
                                     <div className="grid gap-2">
                                         <label className="text-sm font-medium">Default Inventory Asset *</label>
                                         <div className="text-xs text-slate-500 mb-1">Debited when items are received into the store.</div>
-                                        <Select
+                                        <Combobox
+                                            options={assetAccounts.map(a => ({ value: a.id.toString(), label: a.code ? `${a.code} — ${a.name}` : a.name }))}
                                             value={settings.default_inventory_account?.toString() || ""}
-                                            onValueChange={v => setSettings({ ...settings, default_inventory_account: v })}
-                                        >
-                                            <SelectTrigger><SelectValue placeholder="Select Asset Account..." /></SelectTrigger>
-                                            <SelectContent>
-                                                {assetAccounts.map(a => (
-                                                    <SelectItem key={a.id} value={a.id.toString()}>{a.code ? `${a.code} - ` : ''}{a.name}</SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
+                                            onChange={v => setSettings({ ...settings, default_inventory_account: v })}
+                                            placeholder="Select Asset Account…"
+                                            searchPlaceholder="Search accounts…"
+                                        />
                                     </div>
                                 </div>
                             </div>
@@ -224,6 +215,26 @@ export function GlobalSettingsClient() {
 
                 <TabsContent value="procedures">
                     <ProcedureTypesTab />
+                </TabsContent>
+
+                <TabsContent value="proc-categories">
+                    <ProcedureCategoriesTab />
+                </TabsContent>
+
+                <TabsContent value="rooms">
+                    <ProcedureRoomsTab />
+                </TabsContent>
+
+                <TabsContent value="medicines">
+                    <MedicinesTab />
+                </TabsContent>
+
+                <TabsContent value="stock-locations">
+                    <StockLocationsTab />
+                </TabsContent>
+
+                <TabsContent value="product-categories">
+                    <ProductCategoriesTab />
                 </TabsContent>
 
                 <TabsContent value="kiosk">
@@ -497,3 +508,510 @@ function ProcedureTypesTab() {
     );
 }
 
+// ─── Reusable simple CRUD tab ─────────────────────────────────────────────────
+
+type SimpleItem = { id: number; name: string; description?: string };
+
+function SimpleCrudTab({
+    title,
+    description,
+    loadFn,
+    createFn,
+    updateFn,
+    deleteFn,
+    extraFields,
+}: {
+    title: string;
+    description: string;
+    loadFn: () => Promise<any>;
+    createFn: (data: any) => Promise<any>;
+    updateFn: (id: number, data: any) => Promise<any>;
+    deleteFn: (id: number) => Promise<any>;
+    extraFields?: (form: any, setForm: (f: any) => void) => React.ReactNode;
+}) {
+    const [items, setItems] = useState<SimpleItem[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [dialogOpen, setDialogOpen] = useState(false);
+    const [saving, setSaving] = useState(false);
+    const [editing, setEditing] = useState<SimpleItem | null>(null);
+    const [form, setForm] = useState<any>({ name: '', description: '' });
+
+    const load = async () => {
+        setLoading(true);
+        try {
+            const res = await loadFn();
+            setItems((res as any).results || res);
+        } catch {
+            toast.error(`Failed to load ${title.toLowerCase()}`);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+    const openNew = () => { setEditing(null); setForm({ name: '', description: '' }); setDialogOpen(true); };
+    const openEdit = (item: SimpleItem) => { setEditing(item); setForm({ name: item.name, description: item.description || '', ...(item as any) }); setDialogOpen(true); };
+
+    const handleSave = async () => {
+        if (!form.name?.trim()) { toast.error('Name is required.'); return; }
+        setSaving(true);
+        try {
+            if (editing) {
+                await updateFn(editing.id, form);
+                toast.success('Updated.');
+            } else {
+                await createFn(form);
+                toast.success('Created.');
+            }
+            setDialogOpen(false);
+            load();
+        } catch (error) {
+            toast.error((error as Error).message || 'Failed to save.');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const handleDelete = async (item: SimpleItem) => {
+        if (!confirm(`Delete "${item.name}"? This cannot be undone.`)) return;
+        try {
+            await deleteFn(item.id);
+            toast.success('Deleted.');
+            load();
+        } catch (error) {
+            toast.error((error as Error).message || 'Failed to delete.');
+        }
+    };
+
+    return (
+        <Card className="border-[#E8E1D6] shadow-sm rounded-2xl overflow-hidden bg-white">
+            <CardHeader>
+                <div className="flex items-center justify-between">
+                    <div>
+                        <CardTitle>{title}</CardTitle>
+                        <CardDescription>{description}</CardDescription>
+                    </div>
+                    <Button onClick={openNew} className="bg-[#1C1917] hover:bg-[#3E3832] text-white rounded-xl font-bold text-sm h-10 px-4">
+                        <Plus className="w-4 h-4 mr-2 text-[#C4A882]" /> New {title.replace(/s$/, '')}
+                    </Button>
+                </div>
+            </CardHeader>
+            <CardContent className="p-0">
+                {loading ? (
+                    <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-[#C4A882]" /></div>
+                ) : items.length === 0 ? (
+                    <div className="text-center text-[#A0978D] py-16 text-sm">No {title.toLowerCase()} defined yet.</div>
+                ) : (
+                    <Table>
+                        <TableHeader className="bg-[#F7F3ED]">
+                            <TableRow className="border-b border-[#D9D0C5] hover:bg-transparent">
+                                <TableHead className="font-bold text-[#1C1917] py-4 px-6 text-sm">Name</TableHead>
+                                {extraFields && <TableHead className="font-bold text-[#1C1917] py-4 px-6 text-sm">Details</TableHead>}
+                                <TableHead className="py-4 px-6" />
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {items.map(item => (
+                                <TableRow key={item.id} className="hover:bg-[#F7F3ED] border-b border-[#E8E1D6] transition-colors">
+                                    <TableCell className="py-4 px-6 font-bold text-[#1C1917] text-sm">
+                                        {item.name}
+                                        {item.description && <div className="text-xs font-normal text-[#78706A] mt-0.5">{item.description}</div>}
+                                    </TableCell>
+                                    {extraFields && <TableCell className="py-4 px-6 text-sm text-[#78706A]">{/* extra column data rendered via edit */}</TableCell>}
+                                    <TableCell className="py-4 px-6 text-right">
+                                        <div className="flex justify-end gap-2">
+                                            <Button variant="ghost" size="sm" onClick={() => openEdit(item)} className="h-8 w-8 p-0 text-[#78706A] hover:text-[#1C1917]">
+                                                <Pencil className="w-4 h-4" />
+                                            </Button>
+                                            <Button variant="ghost" size="sm" onClick={() => handleDelete(item)} className="h-8 w-8 p-0 text-red-400 hover:text-red-600">
+                                                <Trash2 className="w-4 h-4" />
+                                            </Button>
+                                        </div>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                )}
+            </CardContent>
+
+            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>{editing ? `Edit ${title.replace(/s$/, '')}` : `New ${title.replace(/s$/, '')}`}</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 py-2">
+                        <div className="grid gap-1.5">
+                            <Label>Name *</Label>
+                            <Input value={form.name} onChange={e => setForm((f: any) => ({ ...f, name: e.target.value }))} placeholder="Name" />
+                        </div>
+                        {'description' in form && (
+                            <div className="grid gap-1.5">
+                                <Label>Description</Label>
+                                <Textarea value={form.description} onChange={e => setForm((f: any) => ({ ...f, description: e.target.value }))} rows={2} />
+                            </div>
+                        )}
+                        {extraFields && extraFields(form, setForm)}
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setDialogOpen(false)} disabled={saving}>Cancel</Button>
+                        <Button onClick={handleSave} disabled={saving} className="bg-[#1C1917] hover:bg-[#3E3832] text-white">
+                            {saving ? 'Saving…' : editing ? 'Save Changes' : 'Create'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+        </Card>
+    );
+}
+
+// ─── Procedure Categories Tab ─────────────────────────────────────────────────
+
+function ProcedureCategoriesTab() {
+    return (
+        <SimpleCrudTab
+            title="Procedure Categories"
+            description="Group your procedure types into categories."
+            loadFn={() => mastersApi.procedureCategories.list()}
+            createFn={(data) => mastersApi.procedureCategories.create(data)}
+            updateFn={(id, data) => mastersApi.procedureCategories.update(id, data)}
+            deleteFn={(id) => mastersApi.procedureCategories.delete(id)}
+        />
+    );
+}
+
+// ─── Procedure Rooms Tab ──────────────────────────────────────────────────────
+
+function ProcedureRoomsTab() {
+    const [items, setItems] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [dialogOpen, setDialogOpen] = useState(false);
+    const [saving, setSaving] = useState(false);
+    const [editing, setEditing] = useState<any | null>(null);
+    const [form, setForm] = useState({ name: '', description: '', is_active: true });
+
+    const load = async () => {
+        setLoading(true);
+        try {
+            const res = await mastersApi.procedureRooms.list();
+            setItems((res as any).results || res);
+        } catch { toast.error('Failed to load rooms'); }
+        finally { setLoading(false); }
+    };
+
+    useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+    const openNew = () => { setEditing(null); setForm({ name: '', description: '', is_active: true }); setDialogOpen(true); };
+    const openEdit = (item: any) => { setEditing(item); setForm({ name: item.name, description: item.description || '', is_active: item.is_active ?? true }); setDialogOpen(true); };
+
+    const handleSave = async () => {
+        if (!form.name.trim()) { toast.error('Name is required.'); return; }
+        setSaving(true);
+        try {
+            if (editing) {
+                await mastersApi.procedureRooms.update(editing.id, form);
+                toast.success('Room updated.');
+            } else {
+                await mastersApi.procedureRooms.create(form);
+                toast.success('Room created.');
+            }
+            setDialogOpen(false);
+            load();
+        } catch (error) { toast.error((error as Error).message || 'Failed to save.'); }
+        finally { setSaving(false); }
+    };
+
+    const handleDelete = async (item: any) => {
+        if (!confirm(`Delete "${item.name}"?`)) return;
+        try {
+            await mastersApi.procedureRooms.delete(item.id);
+            toast.success('Deleted.');
+            load();
+        } catch (error) { toast.error((error as Error).message || 'Failed to delete.'); }
+    };
+
+    return (
+        <Card className="border-[#E8E1D6] shadow-sm rounded-2xl overflow-hidden bg-white">
+            <CardHeader>
+                <div className="flex items-center justify-between">
+                    <div>
+                        <CardTitle>Procedure Rooms</CardTitle>
+                        <CardDescription>Treatment rooms where sessions take place.</CardDescription>
+                    </div>
+                    <Button onClick={openNew} className="bg-[#1C1917] hover:bg-[#3E3832] text-white rounded-xl font-bold text-sm h-10 px-4">
+                        <Plus className="w-4 h-4 mr-2 text-[#C4A882]" /> New Room
+                    </Button>
+                </div>
+            </CardHeader>
+            <CardContent className="p-0">
+                {loading ? (
+                    <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-[#C4A882]" /></div>
+                ) : items.length === 0 ? (
+                    <div className="text-center text-[#A0978D] py-16 text-sm">No rooms defined yet.</div>
+                ) : (
+                    <Table>
+                        <TableHeader className="bg-[#F7F3ED]">
+                            <TableRow className="border-b border-[#D9D0C5] hover:bg-transparent">
+                                <TableHead className="font-bold text-[#1C1917] py-4 px-6 text-sm">Name</TableHead>
+                                <TableHead className="font-bold text-[#1C1917] py-4 px-6 text-sm">Status</TableHead>
+                                <TableHead className="py-4 px-6" />
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {items.map(item => (
+                                <TableRow key={item.id} className="hover:bg-[#F7F3ED] border-b border-[#E8E1D6] transition-colors">
+                                    <TableCell className="py-4 px-6 font-bold text-[#1C1917] text-sm">
+                                        {item.name}
+                                        {item.description && <div className="text-xs font-normal text-[#78706A] mt-0.5">{item.description}</div>}
+                                    </TableCell>
+                                    <TableCell className="py-4 px-6 text-sm">
+                                        <span className={`px-2 py-1 rounded-lg text-xs font-bold ${item.is_active ? 'bg-[#D1FAE5] text-[#065F46]' : 'bg-[#FEE2E2] text-[#991B1B]'}`}>
+                                            {item.is_active ? 'Active' : 'Inactive'}
+                                        </span>
+                                    </TableCell>
+                                    <TableCell className="py-4 px-6 text-right">
+                                        <div className="flex justify-end gap-2">
+                                            <Button variant="ghost" size="sm" onClick={() => openEdit(item)} className="h-8 w-8 p-0 text-[#78706A] hover:text-[#1C1917]">
+                                                <Pencil className="w-4 h-4" />
+                                            </Button>
+                                            <Button variant="ghost" size="sm" onClick={() => handleDelete(item)} className="h-8 w-8 p-0 text-red-400 hover:text-red-600">
+                                                <Trash2 className="w-4 h-4" />
+                                            </Button>
+                                        </div>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                )}
+            </CardContent>
+
+            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>{editing ? 'Edit Room' : 'New Room'}</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 py-2">
+                        <div className="grid gap-1.5">
+                            <Label>Name *</Label>
+                            <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g. Laser Room 1" />
+                        </div>
+                        <div className="grid gap-1.5">
+                            <Label>Description</Label>
+                            <Textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} rows={2} />
+                        </div>
+                        <label className="flex items-center gap-2 text-sm cursor-pointer">
+                            <input type="checkbox" checked={form.is_active} onChange={e => setForm(f => ({ ...f, is_active: e.target.checked }))} className="h-4 w-4 rounded border-gray-300" />
+                            Active (available for session scheduling)
+                        </label>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setDialogOpen(false)} disabled={saving}>Cancel</Button>
+                        <Button onClick={handleSave} disabled={saving} className="bg-[#1C1917] hover:bg-[#3E3832] text-white">
+                            {saving ? 'Saving…' : editing ? 'Save Changes' : 'Create'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+        </Card>
+    );
+}
+
+// ─── Medicines Tab ────────────────────────────────────────────────────────────
+
+const MEDICINE_FORMS = ['TABLET', 'CAPSULE', 'SYRUP', 'OINTMENT', 'CREAM', 'INJECTION', 'OTHER'];
+const EMPTY_MED = { generic_name: '', brand_name: '', strength: '', form: 'TABLET', pharmacology_info: '' };
+
+function MedicinesTab() {
+    const [items, setItems] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [search, setSearch] = useState('');
+    const [dialogOpen, setDialogOpen] = useState(false);
+    const [saving, setSaving] = useState(false);
+    const [editing, setEditing] = useState<any | null>(null);
+    const [form, setForm] = useState({ ...EMPTY_MED });
+
+    const load = async () => {
+        setLoading(true);
+        try {
+            const res = await mastersApi.medicines.list({ search: search || undefined, limit: 200 });
+            setItems((res as any).results || res);
+        } catch { toast.error('Failed to load medicines'); }
+        finally { setLoading(false); }
+    };
+
+    useEffect(() => {
+        const t = setTimeout(load, 300);
+        return () => clearTimeout(t);
+    }, [search]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    const openNew = () => { setEditing(null); setForm({ ...EMPTY_MED }); setDialogOpen(true); };
+    const openEdit = (item: any) => {
+        setEditing(item);
+        setForm({ generic_name: item.generic_name || '', brand_name: item.brand_name || '', strength: item.strength || '', form: item.form || 'TABLET', pharmacology_info: item.pharmacology_info || '' });
+        setDialogOpen(true);
+    };
+
+    const handleSave = async () => {
+        if (!form.generic_name.trim()) { toast.error('Generic name is required.'); return; }
+        setSaving(true);
+        try {
+            if (editing) {
+                await mastersApi.medicines.update(editing.id, form);
+                toast.success('Medicine updated.');
+            } else {
+                await mastersApi.medicines.create(form);
+                toast.success('Medicine created.');
+            }
+            setDialogOpen(false);
+            load();
+        } catch (error) { toast.error((error as Error).message || 'Failed to save.'); }
+        finally { setSaving(false); }
+    };
+
+    const handleDelete = async (item: any) => {
+        if (!confirm(`Delete "${item.brand_name || item.generic_name}"?`)) return;
+        try {
+            await mastersApi.medicines.delete(item.id);
+            toast.success('Deleted.');
+            load();
+        } catch (error) { toast.error((error as Error).message || 'Failed to delete.'); }
+    };
+
+    return (
+        <Card className="border-[#E8E1D6] shadow-sm rounded-2xl overflow-hidden bg-white">
+            <CardHeader>
+                <div className="flex items-center justify-between gap-4">
+                    <div>
+                        <CardTitle>Medicines</CardTitle>
+                        <CardDescription>Clinic medicine catalog used in prescriptions.</CardDescription>
+                    </div>
+                    <div className="flex gap-3">
+                        <Input
+                            placeholder="Search medicines…"
+                            value={search}
+                            onChange={e => setSearch(e.target.value)}
+                            className="w-48 h-10 text-sm border-[#D9D0C5] rounded-xl"
+                        />
+                        <Button onClick={openNew} className="bg-[#1C1917] hover:bg-[#3E3832] text-white rounded-xl font-bold text-sm h-10 px-4 shrink-0">
+                            <Plus className="w-4 h-4 mr-2 text-[#C4A882]" /> New Medicine
+                        </Button>
+                    </div>
+                </div>
+            </CardHeader>
+            <CardContent className="p-0">
+                {loading ? (
+                    <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-[#C4A882]" /></div>
+                ) : items.length === 0 ? (
+                    <div className="text-center text-[#A0978D] py-16 text-sm">No medicines found.</div>
+                ) : (
+                    <Table>
+                        <TableHeader className="bg-[#F7F3ED]">
+                            <TableRow className="border-b border-[#D9D0C5] hover:bg-transparent">
+                                <TableHead className="font-bold text-[#1C1917] py-4 px-6 text-sm">Brand Name</TableHead>
+                                <TableHead className="font-bold text-[#1C1917] py-4 px-6 text-sm">Generic Name</TableHead>
+                                <TableHead className="font-bold text-[#1C1917] py-4 px-6 text-sm">Strength</TableHead>
+                                <TableHead className="font-bold text-[#1C1917] py-4 px-6 text-sm">Form</TableHead>
+                                <TableHead className="py-4 px-6" />
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {items.map(item => (
+                                <TableRow key={item.id} className="hover:bg-[#F7F3ED] border-b border-[#E8E1D6] transition-colors">
+                                    <TableCell className="py-4 px-6 font-bold text-[#1C1917] text-sm">{item.brand_name || '—'}</TableCell>
+                                    <TableCell className="py-4 px-6 text-sm text-[#78706A]">{item.generic_name}</TableCell>
+                                    <TableCell className="py-4 px-6 text-sm text-[#78706A]">{item.strength || '—'}</TableCell>
+                                    <TableCell className="py-4 px-6 text-sm text-[#78706A]">{item.form}</TableCell>
+                                    <TableCell className="py-4 px-6 text-right">
+                                        <div className="flex justify-end gap-2">
+                                            <Button variant="ghost" size="sm" onClick={() => openEdit(item)} className="h-8 w-8 p-0 text-[#78706A] hover:text-[#1C1917]">
+                                                <Pencil className="w-4 h-4" />
+                                            </Button>
+                                            <Button variant="ghost" size="sm" onClick={() => handleDelete(item)} className="h-8 w-8 p-0 text-red-400 hover:text-red-600">
+                                                <Trash2 className="w-4 h-4" />
+                                            </Button>
+                                        </div>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                )}
+            </CardContent>
+
+            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>{editing ? 'Edit Medicine' : 'New Medicine'}</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 py-2">
+                        <div className="grid gap-1.5">
+                            <Label>Generic Name *</Label>
+                            <Input value={form.generic_name} onChange={e => setForm(f => ({ ...f, generic_name: e.target.value }))} placeholder="e.g. Paracetamol" />
+                        </div>
+                        <div className="grid gap-1.5">
+                            <Label>Brand Name</Label>
+                            <Input value={form.brand_name} onChange={e => setForm(f => ({ ...f, brand_name: e.target.value }))} placeholder="e.g. Napa" />
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="grid gap-1.5">
+                                <Label>Strength</Label>
+                                <Input value={form.strength} onChange={e => setForm(f => ({ ...f, strength: e.target.value }))} placeholder="e.g. 500mg" />
+                            </div>
+                            <div className="grid gap-1.5">
+                                <Label>Form</Label>
+                                <Select value={form.form} onValueChange={v => setForm(f => ({ ...f, form: v }))}>
+                                    <SelectTrigger><SelectValue /></SelectTrigger>
+                                    <SelectContent>
+                                        {MEDICINE_FORMS.map(f => <SelectItem key={f} value={f}>{f.charAt(0) + f.slice(1).toLowerCase()}</SelectItem>)}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </div>
+                        <div className="grid gap-1.5">
+                            <Label>Pharmacology Info</Label>
+                            <Textarea value={form.pharmacology_info} onChange={e => setForm(f => ({ ...f, pharmacology_info: e.target.value }))} rows={2} placeholder="Optional notes" />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setDialogOpen(false)} disabled={saving}>Cancel</Button>
+                        <Button onClick={handleSave} disabled={saving} className="bg-[#1C1917] hover:bg-[#3E3832] text-white">
+                            {saving ? 'Saving…' : editing ? 'Save Changes' : 'Create'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+        </Card>
+    );
+}
+
+// ─── Stock Locations Tab ──────────────────────────────────────────────────────
+
+function StockLocationsTab() {
+    return (
+        <SimpleCrudTab
+            title="Stock Locations"
+            description="Define physical storage areas (e.g. Main Pharmacy, Laser Room). Required for stock adjustments and receiving."
+            loadFn={() => inventoryApi.stockLocations.list({ limit: 200 })}
+            createFn={(data) => inventoryApi.stockLocations.create({ name: data.name })}
+            updateFn={(id, data) => inventoryApi.stockLocations.update(id, { name: data.name })}
+            deleteFn={(id) => inventoryApi.stockLocations.delete(id)}
+        />
+    );
+}
+
+// ─── Product Categories Tab ───────────────────────────────────────────────────
+
+function ProductCategoriesTab() {
+    return (
+        <SimpleCrudTab
+            title="Product Categories"
+            description="Organise your product catalog into categories."
+            loadFn={() => inventoryApi.categories.list({ limit: 200 })}
+            createFn={(data) => inventoryApi.categories.create({ name: data.name })}
+            updateFn={(id, data) => inventoryApi.categories.update(id, { name: data.name })}
+            deleteFn={(id) => inventoryApi.categories.delete(id)}
+        />
+    );
+}

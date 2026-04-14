@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Combobox } from "@/components/ui/combobox";
 import { Search, Plus, Truck, CheckCircle2 } from "lucide-react";
 import toast from "react-hot-toast";
 import { format } from "date-fns";
@@ -217,18 +218,17 @@ export function GRNListClient() {
                     <div className="grid gap-6 py-4">
                         <div className="grid gap-2">
                             <Label>Select Expected Purchase Order</Label>
-                            <Select value={selectedPoId} onValueChange={handleSelectPO}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Select Sent PO..." />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {pendingPOs.map(po => (
-                                        <SelectItem key={po.id} value={po.id.toString()}>
-                                            {po.po_number} - {po.vendor_name} (Issued: {format(new Date(po.order_date), 'MMM d, yyyy')})
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                            <Combobox
+                                options={pendingPOs.map(po => ({
+                                    value: po.id.toString(),
+                                    label: `${po.po_number} — ${po.vendor_name} (${format(new Date(po.order_date), 'MMM d, yyyy')})`,
+                                }))}
+                                value={selectedPoId}
+                                onChange={handleSelectPO}
+                                placeholder="Select Sent PO…"
+                                searchPlaceholder="Search PO number or vendor…"
+                                emptyText="No pending POs found."
+                            />
                         </div>
 
                         {selectedPo && (

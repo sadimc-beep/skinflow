@@ -33,7 +33,9 @@ export interface ProcedureType {
 
 export const mastersApi = {
     medicines: {
-        /** Search the local MedicineMaster catalog (21k+ entries from Kaggle) */
+        list: (params?: Record<string, any>) =>
+            fetchApi<PaginatedResponse<MedicineMaster>>('masters/medicines', { params }),
+        /** Search the local MedicineMaster catalog */
         search: (searchQuery?: string) =>
             fetchApi<PaginatedResponse<MedicineMaster>>('masters/medicines', {
                 params: searchQuery ? { search: searchQuery } : undefined
@@ -43,6 +45,22 @@ export const mastersApi = {
             fetchApi<PharmaseedMedicine[]>('masters/medicines/pharmaseed-search', {
                 params: { search: searchQuery }
             }),
+        create: (data: any) =>
+            fetchApi<MedicineMaster>('masters/medicines/', { method: 'POST', body: JSON.stringify(data) }),
+        update: (id: number, data: any) =>
+            fetchApi<MedicineMaster>(`masters/medicines/${id}/`, { method: 'PATCH', body: JSON.stringify(data) }),
+        delete: (id: number) =>
+            fetchApi(`masters/medicines/${id}/`, { method: 'DELETE' }),
+    },
+    procedureCategories: {
+        list: (params?: Record<string, any>) =>
+            fetchApi<PaginatedResponse<{ id: number; name: string; description: string }>>('masters/procedure-categories', { params }),
+        create: (data: any) =>
+            fetchApi('masters/procedure-categories/', { method: 'POST', body: JSON.stringify(data) }),
+        update: (id: number, data: any) =>
+            fetchApi(`masters/procedure-categories/${id}/`, { method: 'PATCH', body: JSON.stringify(data) }),
+        delete: (id: number) =>
+            fetchApi(`masters/procedure-categories/${id}/`, { method: 'DELETE' }),
     },
     procedureTypes: {
         search: (searchQuery?: string) =>
@@ -59,7 +77,13 @@ export const mastersApi = {
             fetchApi(`masters/procedure-types/${id}/`, { method: 'DELETE' }),
     },
     procedureRooms: {
-        list: () =>
-            fetchApi<PaginatedResponse<{ id: number; name: string; is_active: boolean }>>('masters/procedure-rooms'),
+        list: (params?: Record<string, any>) =>
+            fetchApi<PaginatedResponse<{ id: number; name: string; description: string; is_active: boolean }>>('masters/procedure-rooms', { params }),
+        create: (data: any) =>
+            fetchApi('masters/procedure-rooms/', { method: 'POST', body: JSON.stringify(data) }),
+        update: (id: number, data: any) =>
+            fetchApi(`masters/procedure-rooms/${id}/`, { method: 'PATCH', body: JSON.stringify(data) }),
+        delete: (id: number) =>
+            fetchApi(`masters/procedure-rooms/${id}/`, { method: 'DELETE' }),
     },
 };

@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Combobox } from "@/components/ui/combobox";
 import { fetchApi } from "@/lib/api";
 import { inventoryApi } from "@/lib/services/inventory";
 import { toast } from "sonner";
@@ -208,29 +209,23 @@ export function StockClient() {
                         </div>
                         <div className="space-y-1.5">
                             <Label>Product <span className="text-red-500">*</span></Label>
-                            <Select value={adjustForm.product} onValueChange={(v) => setAdjustForm(f => ({ ...f, product: v }))}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Select product…" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {products.map((p) => (
-                                        <SelectItem key={p.id} value={String(p.id)}>{p.name}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                            <Combobox
+                                options={products.map(p => ({ value: String(p.id), label: p.name }))}
+                                value={adjustForm.product}
+                                onChange={(v) => setAdjustForm(f => ({ ...f, product: v }))}
+                                placeholder="Select product…"
+                                searchPlaceholder="Search products…"
+                            />
                         </div>
                         <div className="space-y-1.5">
                             <Label>Location <span className="text-red-500">*</span></Label>
-                            <Select value={adjustForm.location} onValueChange={(v) => setAdjustForm(f => ({ ...f, location: v }))}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Select location…" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {locations.map((l) => (
-                                        <SelectItem key={l.id} value={String(l.id)}>{l.name}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                            <Combobox
+                                options={locations.map(l => ({ value: String(l.id), label: l.name }))}
+                                value={adjustForm.location}
+                                onChange={(v) => setAdjustForm(f => ({ ...f, location: v }))}
+                                placeholder="Select location…"
+                                searchPlaceholder="Search locations…"
+                            />
                         </div>
                         <div className="space-y-1.5">
                             <Label>Quantity <span className="text-red-500">*</span></Label>

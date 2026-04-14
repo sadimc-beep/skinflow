@@ -1,7 +1,7 @@
 # Implementation Status
 
 > **Source:** Inferred from codebase and PROJECT_STATUS.md (April 2026). UI verified against PDF screenshots.
-> **Last reviewed:** April 14, 2026
+> **Last CRUD audit:** April 14, 2026 — full audit of all list/detail/create/edit/delete across Clinical, Inventory, Billing, Masters, Settings
 
 ## Summary
 
@@ -72,13 +72,15 @@
 - Finance overview (revenue cards, navigation)
 - Accounting module basic UI (Chart of Accounts, Journals, Banking, Reports tabs - see Partial section)
 - Inventory dashboard
-- Product catalog
-- Stock levels view
-- Purchase orders management
+- Product catalog with inline edit Sheet (all fields: name, SKU, type, category, UOM, cost/sale price, tax rate, classification flags) and delete
+- Stock levels view with Adjust Stock modal
+- Purchase orders management — list + detail page (`/inventory/purchase-orders/[id]`) with Mark as Sent / Cancel PO actions
 - GRN receiving
 - Vendors directory
+- Settings: Procedure Types, Procedure Categories, Procedure Rooms, Medicines, Stock Locations, Product Categories — all with full CRUD (add April 14, 2026)
 - Point of Sale interface
-- Settings (roles, staff)
+- Settings (roles, staff, procedure types, procedure categories, rooms, medicines, stock locations, product categories)
+- All API-loaded dropdowns now use searchable Combobox (PO form, GRN receive modal, Stock adjust modal, Account Mapping modal, Staff invite modal, Ledger Mapping settings) — April 14, 2026
 - Login page with JWT handling
 - Superadmin portal (organizations, plans, invoices, announcements, audit log)
 - **Camera Capture Component** — WebRTC getUserMedia, SVG positioning overlays (7 angles), capture/retake/upload flow, front/rear camera toggle, permission error handling

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Combobox } from '@/components/ui/combobox';
 import { Loader2 } from 'lucide-react';
 import { settingsApi } from '@/lib/services/settings';
 import toast from 'react-hot-toast';
@@ -145,28 +145,17 @@ export function AccountMappingModal({ open, onOpenChange, accounts }: AccountMap
                                                 <p className="text-sm font-semibold text-[#1C1917] leading-tight">{field.label}</p>
                                                 <p className="text-xs text-[#A0978D] mt-0.5 leading-snug">{field.hint}</p>
                                             </div>
-                                            <Select
+                                            <Combobox
+                                                options={[
+                                                    { value: NONE_VALUE, label: '— not mapped —' },
+                                                    ...accounts.map(acc => ({ value: String(acc.id), label: accountLabel(acc) })),
+                                                ]}
                                                 value={mapping[field.key] ?? NONE_VALUE}
-                                                onValueChange={val => setMapping(prev => ({ ...prev, [field.key]: val }))}
-                                            >
-                                                <SelectTrigger className="h-11 bg-[#F7F3ED] border-[#D9D0C5] focus:ring-[#C4A882] rounded-xl text-sm text-[#1C1917]">
-                                                    <SelectValue placeholder="— not mapped —" />
-                                                </SelectTrigger>
-                                                <SelectContent className="max-h-[200px] border-[#D9D0C5] rounded-xl shadow-md">
-                                                    <SelectItem value={NONE_VALUE} className="text-[#A0978D] italic focus:bg-[#EDE7DC]">
-                                                        — not mapped —
-                                                    </SelectItem>
-                                                    {accounts.map(acc => (
-                                                        <SelectItem
-                                                            key={acc.id}
-                                                            value={String(acc.id)}
-                                                            className="focus:bg-[#EDE7DC] focus:text-[#1C1917] text-sm"
-                                                        >
-                                                            {accountLabel(acc)}
-                                                        </SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
+                                                onChange={val => setMapping(prev => ({ ...prev, [field.key]: val }))}
+                                                placeholder="— not mapped —"
+                                                searchPlaceholder="Search accounts…"
+                                                className="h-11 bg-[#F7F3ED] border-[#D9D0C5] rounded-xl text-sm"
+                                            />
                                         </div>
                                     ))}
                                 </div>
