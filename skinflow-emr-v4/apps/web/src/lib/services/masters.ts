@@ -49,6 +49,14 @@ export const mastersApi = {
             fetchApi<PaginatedResponse<ProcedureType>>('masters/procedure-types', {
                 params: searchQuery ? { search: searchQuery } : undefined
             }),
+        list: (params?: Record<string, any>) =>
+            fetchApi<PaginatedResponse<ProcedureType>>('masters/procedure-types', { params }),
+        create: (data: Partial<ProcedureType>) =>
+            fetchApi<ProcedureType>('masters/procedure-types/', { method: 'POST', body: JSON.stringify(data) }),
+        update: (id: number, data: Partial<ProcedureType>) =>
+            fetchApi<ProcedureType>(`masters/procedure-types/${id}/`, { method: 'PATCH', body: JSON.stringify(data) }),
+        delete: (id: number) =>
+            fetchApi(`masters/procedure-types/${id}/`, { method: 'DELETE' }),
     },
     procedureRooms: {
         list: () =>

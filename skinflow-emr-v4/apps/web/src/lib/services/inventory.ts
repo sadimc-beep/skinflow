@@ -24,7 +24,9 @@ export const inventoryApi = {
             if (type) params.product_type = type;
             if (isSaleable !== undefined) params.is_saleable = isSaleable;
             return fetchApi<PaginatedResponse<Product>>('inventory/products', { params });
-        }
+        },
+        create: (data: Partial<Product>) => fetchApi<Product>('inventory/products/', { method: 'POST', body: JSON.stringify(data) }),
+        update: (id: number, data: Partial<Product>) => fetchApi<Product>(`inventory/products/${id}/`, { method: 'PATCH', body: JSON.stringify(data) }),
     },
     vendors: {
         list: (params?: Record<string, any>) => fetchApi<PaginatedResponse<any>>('inventory/vendors', { params }),

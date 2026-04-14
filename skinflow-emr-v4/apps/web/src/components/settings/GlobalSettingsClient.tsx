@@ -9,7 +9,14 @@ import { Loader2, Save, Tablet, Copy, Check } from 'lucide-react';
 import { settingsApi } from '@/lib/services/settings';
 import { accountingApi } from '@/lib/services/accounting';
 import { fetchApi } from '@/lib/api';
+import { mastersApi, type ProcedureType } from '@/lib/services/masters';
 import { StaffManagementTab, RolesManagementTab } from './StaffAndRolesClient';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Pencil, Plus, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export function GlobalSettingsClient() {
@@ -113,6 +120,7 @@ export function GlobalSettingsClient() {
                     <TabsTrigger value="ledger" className="rounded-full px-5 font-bold text-sm">Ledger Mapping</TabsTrigger>
                     <TabsTrigger value="users" className="rounded-full px-5 font-bold text-sm">Users</TabsTrigger>
                     <TabsTrigger value="roles" className="rounded-full px-5 font-bold text-sm">Roles & Permissions</TabsTrigger>
+                    <TabsTrigger value="procedures" className="rounded-full px-5 font-bold text-sm">Procedure Types</TabsTrigger>
                     <TabsTrigger value="kiosk" className="rounded-full px-5 font-bold text-sm">Kiosk Setup</TabsTrigger>
                     <TabsTrigger value="general" className="rounded-full px-5 font-bold text-sm">General Preferences</TabsTrigger>
                 </TabsList>
@@ -214,6 +222,10 @@ export function GlobalSettingsClient() {
                     <RolesManagementTab />
                 </TabsContent>
 
+                <TabsContent value="procedures">
+                    <ProcedureTypesTab />
+                </TabsContent>
+
                 <TabsContent value="kiosk">
                     <KioskSetupTab kioskToken={kioskToken} copied={copied} onCopy={() => {
                         if (!kioskToken) return;
@@ -304,6 +316,183 @@ function KioskSetupTab({
                     <p className="text-[#A0978D] text-center py-8">Loading kiosk token…</p>
                 )}
             </CardContent>
+        </Card>
+    );
+}
+
+// ─── Procedure Types Tab ──────────────────────────────────────────────────────
+
+const EMPTY_PT = { name: '', description: '', base_price: '', expected_default_sessions: 1, consultation_required: true };
+
+function ProcedureTypesTab() {
+    const [items, setItems] = useState<ProcedureType[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [dialogOpen, setDialogOpen] = useState(false);
+    const [saving, setSaving] = useState(false);
+    const [editing, setEditing] = useState<ProcedureType | null>(null);
+    const [form, setForm] = useState({ ...EMPTY_PT });
+
+    const load = async () => {
+        setLoading(true);
+        try {
+            const res = await mastersApi.procedureTypes.list();
+            setItems((res as any).results || res);
+        } catch {
+            toast.error('Failed to load procedure types');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => { load(); }, []);
+
+    const openNew = () => {
+        setEditing(null);
+        setForm({ ...EMPTY_PT });
+        setDialogOpen(true);
+    };
+
+    const openEdit = (pt: ProcedureType) => {
+        setEditing(pt);
+        setForm({
+            name: pt.name,
+            description: pt.description || '',
+            base_price: pt.base_price || '',
+            expected_default_sessions: (pt as any).expected_default_sessions ?? 1,
+            consultation_required: (pt as any).consultation_required ?? true,
+        });
+        setDialogOpen(true);
+    };
+
+    const handleSave = async () => {
+        if (!form.name.trim()) { toast.error('Name is required.'); return; }
+        setSaving(true);
+        try {
+            const payload = {
+                name: form.name,
+                description: form.description,
+                base_price: form.base_price || '0.00',
+                expected_default_sessions: form.expected_default_sessions,
+                consultation_required: form.consultation_required,
+            };
+            if (editing) {
+                await mastersApi.procedureTypes.update(editing.id, payload);
+                toast.success('Procedure type updated.');
+            } else {
+                await mastersApi.procedureTypes.create(payload);
+                toast.success('Procedure type created.');
+            }
+            setDialogOpen(false);
+            load();
+        } catch (error) {
+            toast.error((error as Error).message || 'Failed to save procedure type.');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const handleDelete = async (pt: ProcedureType) => {
+        if (!confirm(`Delete "${pt.name}"? This cannot be undone.`)) return;
+        try {
+            await mastersApi.procedureTypes.delete(pt.id);
+            toast.success('Deleted.');
+            load();
+        } catch (error) {
+            toast.error((error as Error).message || 'Failed to delete.');
+        }
+    };
+
+    return (
+        <Card className="border-[#E8E1D6] shadow-sm rounded-2xl overflow-hidden bg-white">
+            <CardHeader>
+                <div className="flex items-center justify-between">
+                    <div>
+                        <CardTitle>Procedure Types</CardTitle>
+                        <CardDescription>Define the treatments and procedures your clinic offers.</CardDescription>
+                    </div>
+                    <Button onClick={openNew} className="bg-[#1C1917] hover:bg-[#3E3832] text-white rounded-xl font-bold text-sm h-10 px-4">
+                        <Plus className="w-4 h-4 mr-2 text-[#C4A882]" />
+                        New Procedure Type
+                    </Button>
+                </div>
+            </CardHeader>
+            <CardContent className="p-0">
+                {loading ? (
+                    <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-[#C4A882]" /></div>
+                ) : items.length === 0 ? (
+                    <div className="text-center text-[#A0978D] py-16 text-sm">No procedure types defined yet.</div>
+                ) : (
+                    <Table>
+                        <TableHeader className="bg-[#F7F3ED]">
+                            <TableRow className="border-b border-[#D9D0C5] hover:bg-transparent">
+                                <TableHead className="font-bold text-[#1C1917] py-4 px-6 text-sm">Name</TableHead>
+                                <TableHead className="font-bold text-[#1C1917] py-4 px-6 text-sm">Description</TableHead>
+                                <TableHead className="text-right font-bold text-[#1C1917] py-4 px-6 text-sm">Base Price</TableHead>
+                                <TableHead className="text-right font-bold text-[#1C1917] py-4 px-6 text-sm">Sessions</TableHead>
+                                <TableHead className="py-4 px-6" />
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {items.map(pt => (
+                                <TableRow key={pt.id} className="hover:bg-[#F7F3ED] border-b border-[#E8E1D6] transition-colors">
+                                    <TableCell className="py-4 px-6 font-bold text-[#1C1917] text-sm">{pt.name}</TableCell>
+                                    <TableCell className="py-4 px-6 text-sm text-[#78706A] max-w-xs truncate">{pt.description || '—'}</TableCell>
+                                    <TableCell className="py-4 px-6 text-right font-medium text-sm text-[#1C1917]">৳{Number(pt.base_price).toFixed(2)}</TableCell>
+                                    <TableCell className="py-4 px-6 text-right text-sm text-[#78706A]">{(pt as any).expected_default_sessions ?? 1}</TableCell>
+                                    <TableCell className="py-4 px-6 text-right">
+                                        <div className="flex justify-end gap-2">
+                                            <Button variant="ghost" size="sm" onClick={() => openEdit(pt)} className="h-8 w-8 p-0 text-[#78706A] hover:text-[#1C1917]">
+                                                <Pencil className="w-4 h-4" />
+                                            </Button>
+                                            <Button variant="ghost" size="sm" onClick={() => handleDelete(pt)} className="h-8 w-8 p-0 text-red-400 hover:text-red-600">
+                                                <Trash2 className="w-4 h-4" />
+                                            </Button>
+                                        </div>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                )}
+            </CardContent>
+
+            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>{editing ? 'Edit Procedure Type' : 'New Procedure Type'}</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 py-2">
+                        <div className="grid gap-1.5">
+                            <Label>Name *</Label>
+                            <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g. Botox Treatment" />
+                        </div>
+                        <div className="grid gap-1.5">
+                            <Label>Description</Label>
+                            <Textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="Optional description" rows={2} />
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="grid gap-1.5">
+                                <Label>Base Price (৳)</Label>
+                                <Input type="number" min="0" step="0.01" value={form.base_price} onChange={e => setForm(f => ({ ...f, base_price: e.target.value }))} placeholder="0.00" />
+                            </div>
+                            <div className="grid gap-1.5">
+                                <Label>Default Sessions</Label>
+                                <Input type="number" min="1" value={form.expected_default_sessions} onChange={e => setForm(f => ({ ...f, expected_default_sessions: parseInt(e.target.value) || 1 }))} />
+                            </div>
+                        </div>
+                        <label className="flex items-center gap-2 text-sm cursor-pointer">
+                            <input type="checkbox" checked={form.consultation_required} onChange={e => setForm(f => ({ ...f, consultation_required: e.target.checked }))} className="h-4 w-4 rounded border-gray-300" />
+                            Requires consultation before billing
+                        </label>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setDialogOpen(false)} disabled={saving}>Cancel</Button>
+                        <Button onClick={handleSave} disabled={saving} className="bg-[#1C1917] hover:bg-[#3E3832] text-white">
+                            {saving ? 'Saving…' : editing ? 'Save Changes' : 'Create'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </Card>
     );
 }

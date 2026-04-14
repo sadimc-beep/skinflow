@@ -6,13 +6,39 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { inventoryApi } from "@/lib/services/inventory";
 import { toast } from "sonner";
+
+const PRODUCT_TYPES = [
+    { value: "MEDICINE", label: "Medicine" },
+    { value: "SKINCARE", label: "Skincare" },
+    { value: "CONSUMABLE", label: "Consumable" },
+    { value: "DEVICE", label: "Device" },
+    { value: "OTHER", label: "Other" },
+];
+
+const EMPTY_FORM = {
+    name: "",
+    sku: "",
+    product_type: "CONSUMABLE",
+    cost_price: "",
+    sale_price: "",
+    is_saleable: false,
+    is_stock_tracked: true,
+    is_procedure_item: false,
+    is_clinic_item: false,
+};
 
 export function ProductsClient() {
     const [products, setProducts] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
+    const [dialogOpen, setDialogOpen] = useState(false);
+    const [saving, setSaving] = useState(false);
+    const [form, setForm] = useState({ ...EMPTY_FORM });
 
     const fetchProducts = async () => {
         setIsLoading(true);
@@ -27,12 +53,38 @@ export function ProductsClient() {
     };
 
     useEffect(() => {
-        // debounce search
         const timer = setTimeout(() => {
             fetchProducts();
         }, 300);
         return () => clearTimeout(timer);
     }, [searchTerm]);
+
+    const openNew = () => {
+        setForm({ ...EMPTY_FORM });
+        setDialogOpen(true);
+    };
+
+    const handleSave = async () => {
+        if (!form.name.trim()) { toast.error("Product name is required."); return; }
+        if (!form.product_type) { toast.error("Product type is required."); return; }
+        setSaving(true);
+        try {
+            await inventoryApi.products.create({
+                ...form,
+                cost_price: form.cost_price as any,
+                sale_price: form.sale_price as any,
+            });
+            toast.success("Product created successfully.");
+            setDialogOpen(false);
+            fetchProducts();
+        } catch (error) {
+            toast.error((error as Error).message || "Failed to create product.");
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const field = (key: keyof typeof form, value: any) => setForm(f => ({ ...f, [key]: value }));
 
     return (
         <div className="space-y-6">
@@ -47,7 +99,10 @@ export function ProductsClient() {
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
                 </div>
-                <Button className="bg-[#1C1917] hover:bg-[#3E3832] text-white h-12 px-6 rounded-xl font-bold text-sm shadow-sm">
+                <Button
+                    onClick={openNew}
+                    className="bg-[#1C1917] hover:bg-[#3E3832] text-white h-12 px-6 rounded-xl font-bold text-sm shadow-sm"
+                >
                     <Plus className="w-5 h-5 mr-2 text-[#C4A882]" />
                     New Product
                 </Button>
@@ -57,11 +112,11 @@ export function ProductsClient() {
                 <Table>
                     <TableHeader className="bg-[#F7F3ED]">
                         <TableRow className="border-b border-[#D9D0C5] hover:bg-transparent">
-                            <TableHead className="font-bold text-[#1C1917] py-5 px-6 text-sm ">Product</TableHead>
-                            <TableHead className="font-bold text-[#1C1917] py-5 px-6 text-sm ">Type</TableHead>
-                            <TableHead className="font-bold text-[#1C1917] py-5 px-6 text-sm ">Classification</TableHead>
-                            <TableHead className="text-right font-bold text-[#1C1917] py-5 px-6 text-sm ">Cost Price</TableHead>
-                            <TableHead className="text-right font-bold text-[#1C1917] py-5 px-6 text-sm ">Sale Price</TableHead>
+                            <TableHead className="font-bold text-[#1C1917] py-5 px-6 text-sm">Product</TableHead>
+                            <TableHead className="font-bold text-[#1C1917] py-5 px-6 text-sm">Type</TableHead>
+                            <TableHead className="font-bold text-[#1C1917] py-5 px-6 text-sm">Classification</TableHead>
+                            <TableHead className="text-right font-bold text-[#1C1917] py-5 px-6 text-sm">Cost Price</TableHead>
+                            <TableHead className="text-right font-bold text-[#1C1917] py-5 px-6 text-sm">Sale Price</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -115,6 +170,74 @@ export function ProductsClient() {
                     </TableBody>
                 </Table>
             </div>
+
+            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                <DialogContent className="sm:max-w-lg">
+                    <DialogHeader>
+                        <DialogTitle>New Product</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 py-2">
+                        <div className="grid gap-1.5">
+                            <Label>Name *</Label>
+                            <Input value={form.name} onChange={e => field("name", e.target.value)} placeholder="e.g. Botox 100U Vial" />
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="grid gap-1.5">
+                                <Label>SKU</Label>
+                                <Input value={form.sku} onChange={e => field("sku", e.target.value)} placeholder="Optional" />
+                            </div>
+                            <div className="grid gap-1.5">
+                                <Label>Type *</Label>
+                                <Select value={form.product_type} onValueChange={v => field("product_type", v)}>
+                                    <SelectTrigger><SelectValue /></SelectTrigger>
+                                    <SelectContent>
+                                        {PRODUCT_TYPES.map(t => (
+                                            <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="grid gap-1.5">
+                                <Label>Cost Price (৳)</Label>
+                                <Input type="number" min="0" step="0.01" value={form.cost_price} onChange={e => field("cost_price", e.target.value)} placeholder="0.00" />
+                            </div>
+                            <div className="grid gap-1.5">
+                                <Label>Sale Price (৳)</Label>
+                                <Input type="number" min="0" step="0.01" value={form.sale_price} onChange={e => field("sale_price", e.target.value)} placeholder="0.00" />
+                            </div>
+                        </div>
+                        <div className="grid gap-2">
+                            <Label className="text-sm font-medium">Classification</Label>
+                            <div className="flex flex-wrap gap-4">
+                                {[
+                                    { key: "is_saleable" as const, label: "Retail Saleable" },
+                                    { key: "is_stock_tracked" as const, label: "Track Stock" },
+                                    { key: "is_procedure_item" as const, label: "Procedure Item" },
+                                    { key: "is_clinic_item" as const, label: "Clinic Item" },
+                                ].map(({ key, label }) => (
+                                    <label key={key} className="flex items-center gap-2 text-sm cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            checked={form[key] as boolean}
+                                            onChange={e => field(key, e.target.checked)}
+                                            className="h-4 w-4 rounded border-gray-300"
+                                        />
+                                        {label}
+                                    </label>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setDialogOpen(false)} disabled={saving}>Cancel</Button>
+                        <Button onClick={handleSave} disabled={saving} className="bg-[#1C1917] hover:bg-[#3E3832] text-white">
+                            {saving ? "Saving…" : "Create Product"}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }
