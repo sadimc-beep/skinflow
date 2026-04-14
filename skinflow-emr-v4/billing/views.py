@@ -100,17 +100,58 @@ class InvoiceItemViewSet(BillingBaseViewSet):
 
     @action(detail=True, methods=['post'])
     def mark_fulfilled(self, request, pk=None):
+        from django.utils import timezone
+        from django.db import transaction
+        from inventory.models import StockMovement, StockItem, StockLocation
+        from clinical.models import PrescriptionProduct
+
         item = self.get_object()
 
         if item.is_fulfilled:
             return Response({'error': 'Item is already fulfilled'}, status=status.HTTP_400_BAD_REQUEST)
 
-        from django.utils import timezone
-        item.is_fulfilled = True
-        item.fulfilled_at = timezone.now()
-        item.save()
+        org = get_current_org(request)
+        stock_deducted = False
 
-        return Response({'status': 'fulfilled', 'fulfilled_at': item.fulfilled_at})
+        with transaction.atomic():
+            item.is_fulfilled = True
+            item.fulfilled_at = timezone.now()
+            item.save()
+
+            # Auto-deduct stock if the invoice item links to a PrescriptionProduct
+            # that has a resolved inventory.Product FK.
+            if item.reference_model == 'PrescriptionProduct' and item.reference_id:
+                try:
+                    pp = PrescriptionProduct.objects.select_related('product').get(id=item.reference_id)
+                    if pp.product and pp.product.is_stock_tracked:
+                        location = StockLocation.objects.filter(organization=org).first()
+                        if location:
+                            StockMovement.objects.create(
+                                organization=org,
+                                product=pp.product,
+                                location=location,
+                                movement_type=StockMovement.Type.OUT,
+                                quantity=item.quantity,
+                                reference_id=str(item.invoice_id),
+                                notes=f"Fulfilled via invoice INV-{item.invoice_id}: {item.description}",
+                            )
+                            stock_item, _ = StockItem.objects.get_or_create(
+                                organization=org,
+                                product=pp.product,
+                                location=location,
+                                defaults={'quantity': 0},
+                            )
+                            stock_item.quantity -= item.quantity
+                            stock_item.save()
+                            stock_deducted = True
+                except PrescriptionProduct.DoesNotExist:
+                    pass
+
+        return Response({
+            'status': 'fulfilled',
+            'fulfilled_at': item.fulfilled_at,
+            'stock_deducted': stock_deducted,
+        })
 
 class PaymentViewSet(BillingBaseViewSet):
     queryset = Payment.objects.all()

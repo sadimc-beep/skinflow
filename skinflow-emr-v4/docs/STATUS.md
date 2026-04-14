@@ -17,7 +17,7 @@
 | Payments | Complete | Complete | Multiple methods incl. split payments |
 | Entitlements | Complete | Complete | Auto-creation works; Schedule Session flow on patient page |
 | Inventory | Complete | Complete | Full module; GRN confirm bugs fixed (AD-026); Adjust Stock UI added |
-| Fulfillment Queue | Complete | Complete | Manual product handover queue; store staff marks items fulfilled (AD-026) |
+| Fulfillment Queue | Complete | Complete | Manual handover queue; auto-deducts stock on Hand Over when product FK is set (AD-026) |
 | Accounting | Partial | Partial | Core models built, many features TO BUILD (see ACCOUNTING_SPEC.md) |
 | SaaS Platform | Complete | Complete | Superadmin portal |
 | Authentication | Complete | Complete | JWT login |

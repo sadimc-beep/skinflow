@@ -496,13 +496,13 @@ main                    ← Always deployable, protected
 - Mirrors the pharmacy counter workflow: cashier takes payment at front desk, patient then goes to the store counter to collect products. These are two distinct physical steps.
 - Prevents items from being silently "fulfilled" before a staff member has actually handed them over.
 - Provides a daily queue view (filterable by date, defaults to today) so store staff know exactly what to prepare and hand out.
-- Avoids a premature data model change (adding a `product` FK to `PrescriptionProduct`) that would require a migration and consultation UI changes — deferred to a future iteration.
+- The `SkincareTab` frontend already sent `product: data.product.id` to the API — it was silently dropped because the model had no field for it. Adding the FK field was sufficient; no UI changes needed.
 
-**Stock deduction:** Because there is no FK from `PrescriptionProduct` → `inventory.Product`, the `mark_fulfilled` backend action only sets `is_fulfilled=True` and `fulfilled_at`. Manual stock deduction for sold products must be done separately via the Adjust Stock modal on the Stock Ledger page. This is acceptable for Miracle's go-live: the product catalog is small and all sold products are tracked informally.
+**Stock deduction (resolved April 14, 2026):** `PrescriptionProduct` now has a `product = ForeignKey('inventory.Product', null=True, blank=True)` field (migration `clinical/0014`). `mark_fulfilled` now auto-creates a `StockMovement OUT` and decrements `StockItem.quantity` when the item has a resolved product FK and `is_stock_tracked=True`. Returns `stock_deducted: true/false` in the response. Manual Adjust Stock is the fallback for items where the FK is null (prescriptions created before the migration).
 
 **Consequences:**
-- Products sold via prescription invoices do not auto-deduct from inventory — requires a manual OUT movement via Adjust Stock.
-- Future improvement: add `product = ForeignKey('inventory.Product', null=True)` to `PrescriptionProduct` and wire it in the consultation editor; then `mark_fulfilled` can auto-create the StockMovement OUT.
+- New prescriptions (after migration) auto-deduct stock on fulfillment handover. No manual step required.
+- Prescriptions created before the migration have `product=NULL` — those items show `stock_deducted: false` and require a manual OUT via Adjust Stock (not a concern for Miracle since they start fresh).
 - Fulfillment Queue is visible to anyone with `billing.read` permission (front desk and store roles).
 
 **Affected files:** `billing/services.py` (`fulfill_products_for_paid_invoice` converted to no-op), `billing/serializers.py` (added `patient_name`, `invoice_status`, `invoice_paid_at` to `InvoiceItemSerializer`), `billing/views.py` (`InvoiceItemViewSet` — added `invoice__status` and `date` filters), `components/inventory/FulfillmentListClient.tsx` (full rebuild), `app/(app)/inventory/fulfillment/page.tsx` (simplified), `components/shell/Sidebar.tsx` (Fulfillment Queue nav entry added)

@@ -103,15 +103,19 @@ class PrescriptionProcedure(TimeStampedModel):
     billed_invoice = models.ForeignKey('billing.Invoice', on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
 
 class PrescriptionProduct(TimeStampedModel):
-    # This represents a recommended skincare product
     prescription = models.ForeignKey(Prescription, on_delete=models.CASCADE, related_name='products')
-    # Will link to inventory.Product via string reference or actual FK
-    product_name = models.CharField(max_length=255) # Placeholder until inventory is built
+    product = models.ForeignKey(
+        'inventory.Product',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='prescribed_as',
+    )
+    product_name = models.CharField(max_length=255)
     quantity = models.PositiveIntegerField(default=1)
     price = models.DecimalField(max_digits=10, decimal_places=2)
     manual_discount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     is_selected_for_billing = models.BooleanField(default=True)
-    
+
     billed_invoice = models.ForeignKey('billing.Invoice', on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
 
 class PrescriptionLabTest(TimeStampedModel):
