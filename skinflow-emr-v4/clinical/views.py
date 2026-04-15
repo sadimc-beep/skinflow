@@ -439,6 +439,19 @@ class PrescriptionProcedureViewSet(ClinicalBaseViewSet):
         return PrescriptionProcedure.objects.filter(prescription__organization=org).select_related('procedure_type')
 
     def perform_create(self, serializer):
+        from rest_framework.exceptions import ValidationError as DRFValidationError
+        prescription = serializer.validated_data.get('prescription')
+        if prescription and prescription.consultation_id:
+            try:
+                provider = prescription.consultation.provider
+                max_pct = provider.max_discount_percentage
+                discount = serializer.validated_data.get('manual_discount', 0)
+                if discount and max_pct is not None and discount > max_pct:
+                    raise DRFValidationError(
+                        {'manual_discount': f'Discount {discount}% exceeds your authorised maximum of {max_pct}%.'}
+                    )
+            except AttributeError:
+                pass
         serializer.save()
 
 class TreatmentPlanViewSet(ClinicalBaseViewSet):

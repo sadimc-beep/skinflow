@@ -4,7 +4,7 @@
 > **Client:** Miracle Aesthetics (Dr. Shaheen Sultana Jolly), Dhanmondi, Dhaka
 > **Users:** 9 (2 doctors, 2 therapists, 2 front desk, 1 store/accountant, 1 owner, 1 admin/Minhaz)
 > **Plan:** Starter (~10 patients/day)
-> **Last Updated:** April 14, 2026 (Stage 4 accounting readiness complete)
+> **Last Updated:** April 15, 2026 (workflow fixes: walk-in consultation, treatment plan view, procedure discount, vendor bill accounting)
 
 ---
 
@@ -39,6 +39,9 @@
 
 ### Remaining
 - [ ] Final verification as each role (full walkthrough)
+
+### Additional (April 15, 2026)
+- [x] Walk-in consultation page — `/consultations/new/page.tsx` created; patient + provider Combobox, optional chief complaint, POST without appointment FK, redirects to new consultation
 
 ---
 
@@ -99,6 +102,7 @@
 ## Stage 4: Accounting Readiness (April 14) — COMPLETE ✅
 
 - [x] Automated journal entries fire correctly for all 4 triggers (invoice, payment, GRN, vendor payment)
+- [x] Vendor bill Mark Paid now calls `POST /mark_paid/` action (was PATCH update, bypassing accounting hook). DR: AP, CR: Bank via `AccountingService.post_vendor_payment()`
 - [x] Granular account mapping: 13 ClinicSettings FK fields (Consultation/Procedure/Product Revenue, Product & Procedure COGS, Cash/Bank/bKash/Nagad, AR, AP, Inventory)
 - [x] `post_invoice_revenue` splits revenue by item type into a multi-line balanced JE
 - [x] `post_patient_payment` routes BKASH → bKash account, NAGAD → Nagad account
@@ -175,9 +179,9 @@
 
 ### Clinical
 - Consultation fee waiver DURING consultation (check-in waiver covers most cases)
-- Procedure discount UI in consultation form (PrescriptionProcedure.discount field exists, UI not wired)
+- ~~Procedure discount UI in consultation form~~ **FIXED April 15, 2026** — discount input rendered in ProceduresTab; capped at provider's max_discount_percentage; backend validates on create
 - Consent form template management UI
-- Treatment plan detail view (can create, no way to view contents)
+- ~~Treatment plan detail view~~ **FIXED April 15, 2026** — plan cards are now click-to-expand inline in ProceduresTab
 - Advanced medication frequency options (alternate days, every 6 hours, etc.)
 
 ### Billing
@@ -214,10 +218,10 @@
 8. **Consultation finalize modal**: UI needs design polish
 9. **Print Rx button**: Not working on consultation page
 10. **PDF download on invoices**: Opens system dialog, needs proper PDF generation
-11. **Treatment plan detail view**: No way to view plan contents
+11. ~~**Treatment plan detail view**~~: **FIXED April 15, 2026** — click-to-expand inline in ProceduresTab
 12. **Appointment editing after arrival**: Should lock patient/provider/date_time after SCHEDULED
 13. **Cross-doctor consultation access**: Verified and fixed (perform_create + perform_update + frontend read-only)
-14. **Procedure discount UI**: Missing from ProceduresTab
+14. ~~**Procedure discount UI**~~: **FIXED April 15, 2026** — input rendered, capped at provider max, backend validation added
 15. **Consultation fee waiver during consultation**: Deferred (check-in waiver covers most cases)
 16. **Global error handling**: Not all API mutations have try/catch with toast
 17. **Pagination warnings**: Multiple QuerySets missing default ordering (UnorderedObjectListWarning)

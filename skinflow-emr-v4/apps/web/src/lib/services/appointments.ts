@@ -5,6 +5,8 @@ export const coreApi = {
     providers: {
         list: (params?: { is_active?: boolean }) =>
             fetchApi<PaginatedResponse<Provider>>('core/providers', { params }),
+        get: (id: number | string) =>
+            fetchApi<Provider>(`core/providers/${id}`),
     }
 };
 

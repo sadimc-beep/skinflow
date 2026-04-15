@@ -22,6 +22,8 @@ import {
   CalendarDays,
   Stethoscope,
   RefreshCw,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -48,6 +50,7 @@ interface ProceduresTabProps {
   existingPrescription?: Prescription;
   onPrescriptionUpdated: () => void;
   readOnly?: boolean;
+  maxDiscountPct?: number;
 }
 
 export function ProceduresTab({
@@ -56,6 +59,7 @@ export function ProceduresTab({
   existingPrescription,
   onPrescriptionUpdated,
   readOnly = false,
+  maxDiscountPct = 0,
 }: ProceduresTabProps) {
   const [prescription, setPrescription] = useState<Prescription | undefined>(
     existingPrescription,
@@ -66,6 +70,16 @@ export function ProceduresTab({
   const [treatmentPlans, setTreatmentPlans] = useState<any[]>([]);
   const [loadingPlans, setLoadingPlans] = useState(false);
   const [deletingPlanId, setDeletingPlanId] = useState<number | null>(null);
+  const [expandedPlanIds, setExpandedPlanIds] = useState<Set<number>>(new Set());
+
+  const togglePlanExpand = (planId: number) => {
+    setExpandedPlanIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(planId)) next.delete(planId);
+      else next.add(planId);
+      return next;
+    });
+  };
 
   // Combobox state
   const [open, setOpen] = useState(false);
@@ -348,6 +362,34 @@ export function ProceduresTab({
               className="flex flex-col sm:flex-row items-end gap-4"
             >
               <ProcedureSelector formInstance={sessionForm} />
+              <FormField
+                control={sessionForm.control}
+                name="manual_discount"
+                render={({ field }) => (
+                  <FormItem className="w-full sm:w-36 shrink-0">
+                    <FormLabel className="text-[#1C1917] font-bold">
+                      Discount %
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        min={0}
+                        max={maxDiscountPct}
+                        step={0.5}
+                        className="bg-white border-[#D9D0C5] focus-visible:ring-[#C4A882]"
+                        {...field}
+                        onChange={(e) => {
+                          const val = parseFloat(e.target.value) || 0;
+                          field.onChange(Math.min(val, maxDiscountPct));
+                        }}
+                      />
+                    </FormControl>
+                    {maxDiscountPct > 0 && (
+                      <p className="text-xs text-[#A0978D] mt-1">Max: {maxDiscountPct}%</p>
+                    )}
+                  </FormItem>
+                )}
+              />
               <Button
                 type="submit"
                 disabled={isSaving}
@@ -508,72 +550,93 @@ export function ProceduresTab({
             generate one.
           </p>
         ) : (
-          <div className="space-y-4">
-            {treatmentPlans.map((plan: any) => (
-              <Card
-                key={plan.id}
-                className="border-[#E8E1D6] bg-white shadow-sm rounded-xl"
-              >
-                <CardContent className="p-5">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-start gap-4">
-                      <div className="bg-[#F7F3ED] p-2 rounded-lg border border-[#D9D0C5]">
-                        <Stethoscope className="h-5 w-5 text-[#1C1917] shrink-0" />
-                      </div>
-                      <div>
-                        <p className="font-bold text-lg text-[#1C1917] tracking-tight">
-                          {plan.name}
-                        </p>
-                        <p className="text-sm text-[#78706A] font-medium mt-1">
-                          Created:{" "}
-                          {new Date(plan.created_at).toLocaleDateString()}
-                        </p>
-                        {plan.items && plan.items.length > 0 && (
-                          <ul className="mt-3 space-y-2">
-                            {plan.items.map((item: any) => (
-                              <li
-                                key={item.id}
-                                className="text-base font-medium text-[#4E4843] flex items-center gap-2"
-                              >
-                                <span className="w-1.5 h-1.5 rounded-full bg-[#A0978D] shrink-0" />
-                                {item.procedure_name ||
-                                  `Procedure #${item.procedure_type}`}
-                                <Badge className="text-xs px-2 py-0.5 ml-2 bg-[#C4A882] text-white border-0 shadow-sm">
-                                  {item.planned_sessions} session
-                                  {item.planned_sessions !== 1 ? "s" : ""}
-                                </Badge>
-                              </li>
-                            ))}
-                          </ul>
-                        )}
-                      </div>
+          <div className="space-y-3">
+            {treatmentPlans.map((plan: any) => {
+              const isExpanded = expandedPlanIds.has(plan.id);
+              return (
+                <Card
+                  key={plan.id}
+                  className="border-[#E8E1D6] bg-white shadow-sm rounded-xl overflow-hidden"
+                >
+                  {/* Clickable header row */}
+                  <button
+                    type="button"
+                    onClick={() => togglePlanExpand(plan.id)}
+                    className="w-full text-left p-5 flex items-center gap-4 hover:bg-[#F7F3ED] transition-colors"
+                  >
+                    <div className="bg-[#F7F3ED] p-2 rounded-lg border border-[#D9D0C5] shrink-0">
+                      <Stethoscope className="h-5 w-5 text-[#1C1917]" />
                     </div>
-                    {!readOnly && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="text-[#C4705A] hover:text-[#A85A46] hover:bg-[#C4705A]/10 shrink-0 h-9 w-9 rounded-lg"
-                        disabled={deletingPlanId === plan.id}
-                        onClick={async () => {
-                          setDeletingPlanId(plan.id);
-                          try {
-                            await clinicalApi.treatmentPlans.deleteItem(plan.id);
-                            toast.success("Treatment plan removed.");
-                            await fetchTreatmentPlans();
-                          } catch (error) {
-                            toast.error((error as Error).message || "Failed to remove plan.");
-                          } finally {
-                            setDeletingPlanId(null);
-                          }
-                        }}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                    <div className="flex-1 min-w-0">
+                      <p className="font-bold text-base text-[#1C1917] tracking-tight truncate">
+                        {plan.name}
+                      </p>
+                      <p className="text-sm text-[#78706A] mt-0.5">
+                        Created: {new Date(plan.created_at).toLocaleDateString()}
+                        {plan.items?.length > 0 && (
+                          <span className="ml-2 text-[#A0978D]">
+                            · {plan.items.length} procedure{plan.items.length !== 1 ? "s" : ""}
+                          </span>
+                        )}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      {!readOnly && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-[#C4705A] hover:text-[#A85A46] hover:bg-[#C4705A]/10 h-8 w-8 rounded-lg"
+                          disabled={deletingPlanId === plan.id}
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            setDeletingPlanId(plan.id);
+                            try {
+                              await clinicalApi.treatmentPlans.deleteItem(plan.id);
+                              toast.success("Treatment plan removed.");
+                              await fetchTreatmentPlans();
+                            } catch (error) {
+                              toast.error((error as Error).message || "Failed to remove plan.");
+                            } finally {
+                              setDeletingPlanId(null);
+                            }
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                      {isExpanded
+                        ? <ChevronUp className="h-4 w-4 text-[#A0978D]" />
+                        : <ChevronDown className="h-4 w-4 text-[#A0978D]" />
+                      }
+                    </div>
+                  </button>
+
+                  {/* Expandable items */}
+                  {isExpanded && plan.items && plan.items.length > 0 && (
+                    <CardContent className="px-5 pb-5 pt-0 border-t border-[#E8E1D6]">
+                      <ul className="mt-4 space-y-2">
+                        {plan.items.map((item: any) => (
+                          <li
+                            key={item.id}
+                            className="flex items-center justify-between py-2 px-3 rounded-lg bg-[#F7F3ED]"
+                          >
+                            <div className="flex items-center gap-2">
+                              <span className="w-1.5 h-1.5 rounded-full bg-[#C4A882] shrink-0" />
+                              <span className="text-sm font-medium text-[#1C1917]">
+                                {item.procedure_name || `Procedure #${item.procedure_type}`}
+                              </span>
+                            </div>
+                            <Badge className="text-xs px-2 py-0.5 bg-[#C4A882] text-white border-0 shadow-sm shrink-0">
+                              {item.planned_sessions} session{item.planned_sessions !== 1 ? "s" : ""}
+                            </Badge>
+                          </li>
+                        ))}
+                      </ul>
+                    </CardContent>
+                  )}
+                </Card>
+              );
+            })}
           </div>
         )}
       </div>

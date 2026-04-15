@@ -178,7 +178,7 @@
 12. **Consultation finalize modal**: UI needs design polish. Defer to design sprint.
 13. **Print Rx button**: Not working on consultation page. Needs investigation.
 14. **PDF download on invoices**: Not working. Print opens system dialog with HTML page. Needs proper PDF generation.
-15. **Treatment plan detail view**: Plans can be created but no way to view plan contents. Needs detail expansion or modal.
+15. ~~**Treatment plan detail view**~~: **FIXED April 15, 2026** — Plan cards in ProceduresTab are now click-to-expand, showing procedure name and planned sessions inline. No new page needed.
 16. **Appointment editing after arrival**: Appointment form allows changing patient, doctor, and time even after status is ARRIVED or beyond. Should lock critical fields once status passes SCHEDULED. Fields to lock: patient, provider, date_time. Fee is handled separately via waiver flow.
 17. **Cross-doctor consultation access**: Need to verify that Doctor A cannot start a consultation for Doctor B's appointment. If not enforced, add validation.
 20. **Entitlements & Sessions title**: UI rendering glitch on the section header in `PatientEntitlements` component.
@@ -253,7 +253,13 @@ Highest daily value for clinic staff.
 
 ---
 
-*Last reviewed: April 14, 2026 — Payment receipt PDF added: WeasyPrint A5 receipt template (`billing/templates/billing/receipt.html`), `/api/billing/payments/{id}/receipt-pdf/` endpoint, Print Receipt button per payment row + post-payment success banner on invoice detail page*
+*Last reviewed: April 15, 2026 — Payment receipt PDF added: WeasyPrint A5 receipt template (`billing/templates/billing/receipt.html`), `/api/billing/payments/{id}/receipt-pdf/` endpoint, Print Receipt button per payment row + post-payment success banner on invoice detail page*
+
+*April 15, 2026 — Four workflow fixes applied:*
+- *Walk-in consultation: `/consultations/new/page.tsx` created with patient + provider Combobox search and optional chief complaint. POSTs to `clinical/consultations` without appointment FK. Redirects to new consultation on success.*
+- *Treatment plan view: ProceduresTab plan cards are now click-to-expand (default collapsed). Shows procedure name + planned sessions inline. `ChevronDown/Up` indicator added.*
+- *Procedure discount enforcement: Discount input rendered in Immediate Procedure form (0–max%), capped at provider's `max_discount_percentage` on both frontend and backend (`PrescriptionProcedureViewSet.perform_create` raises 400 if exceeded). Provider fetched in `ConsultationEditorClient` via `coreApi.providers.get()`.*
+- *Vendor bill journal entry: `VendorBillsClient.handleMarkPaid` was calling `PATCH /vendor-bills/{id}/` (bypassing accounting). Now calls `POST /vendor-bills/{id}/mark_paid/` which triggers `AccountingService.post_vendor_payment()` (DR: AP, CR: Bank). Added `inventoryApi.vendorBills.markPaid()` in `inventory.ts`.*
 
 ---
 

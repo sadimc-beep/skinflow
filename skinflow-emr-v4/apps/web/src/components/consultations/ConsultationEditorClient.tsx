@@ -59,6 +59,7 @@ import { RxTab } from "./RxTab";
 import { SkincareTab } from "./SkincareTab";
 import { ProceduresTab } from "./ProceduresTab";
 import { GenerateBillModal } from "./GenerateBillModal";
+import { coreApi } from "@/lib/services/appointments";
 
 type EditorProps = {
   consultation: Consultation;
@@ -99,6 +100,15 @@ export function ConsultationEditorClient({
   const [billModalOpen, setBillModalOpen] = useState(false);
   const [liveConsultation, setLiveConsultation] = useState(consultation);
   const [isDownloadingRx, setIsDownloadingRx] = useState(false);
+  const [providerMaxDiscount, setProviderMaxDiscount] = useState<number>(0);
+
+  useEffect(() => {
+    if (consultation.provider) {
+      coreApi.providers.get(consultation.provider)
+        .then((p) => setProviderMaxDiscount(parseFloat(p.max_discount_percentage) || 0))
+        .catch(() => { /* non-fatal */ });
+    }
+  }, [consultation.provider]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const isFinalized = liveConsultation.status === "FINALIZED";
 
@@ -564,6 +574,7 @@ export function ConsultationEditorClient({
                 existingPrescription={liveConsultation.prescription}
                 onPrescriptionUpdated={refreshConsultation}
                 readOnly={isReadOnly}
+                maxDiscountPct={providerMaxDiscount}
               />
             </CardContent>
           </Card>

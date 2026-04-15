@@ -40,11 +40,11 @@ export function VendorBillsClient() {
 
     const handleMarkPaid = async (billId: number) => {
         try {
-            await inventoryApi.vendorBills.update(billId, { status: 'PAID' });
+            await inventoryApi.vendorBills.markPaid(billId);
             toast.success("Bill marked as paid");
             fetchBills();
         } catch (error) {
-            toast.error("Failed to update bill status");
+            toast.error((error as Error).message || "Failed to mark bill as paid");
         }
     };
 

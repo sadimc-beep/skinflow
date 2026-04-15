@@ -74,5 +74,10 @@ export const inventoryApi = {
         list: (params?: Record<string, any>) => fetchApi<PaginatedResponse<any>>('inventory/vendor-bills', { params }),
         create: (data: any) => fetchApi('inventory/vendor-bills/', { method: 'POST', body: JSON.stringify(data) }),
         update: (id: number, data: any) => fetchApi(`inventory/vendor-bills/${id}/`, { method: 'PATCH', body: JSON.stringify(data) }),
+        markPaid: (id: number, paymentMethod = 'BANK') =>
+            fetchApi(`inventory/vendor-bills/${id}/mark_paid`, {
+                method: 'POST',
+                body: JSON.stringify({ payment_method: paymentMethod }),
+            }),
     }
 };
