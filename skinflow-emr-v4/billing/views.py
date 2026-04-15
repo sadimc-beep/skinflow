@@ -167,16 +167,43 @@ class InvoiceItemViewSet(BillingBaseViewSet):
 class PaymentViewSet(BillingBaseViewSet):
     queryset = Payment.objects.all()
     serializer_class = PaymentSerializer
-    
+
     def perform_create(self, serializer):
         # Allow passing invoice ID, ensuring the invoice is in the same tenant
         org = get_current_org(self.request)
         payment = serializer.save(organization=org)
-        
+
         # [ACCOUNTING HOOK] Record the payment receipt (Cash/CC/Check vs A/R)
         if payment.status == Payment.Status.COMPLETED:
             AccountingService.post_patient_payment(payment)
             check_payment_completes_invoice(payment)
+
+    @action(detail=True, methods=['get'], url_path='receipt-pdf')
+    def receipt_pdf(self, request, pk=None):
+        from django.template.loader import render_to_string
+        from django.http import HttpResponse
+        from django.utils.timezone import now
+        import weasyprint
+
+        payment = self.get_object()
+        org = payment.organization
+
+        receipt_number = f"RCP-{payment.id:06d}"
+
+        context = {
+            'payment': payment,
+            'clinic': org,
+            'receipt_number': receipt_number,
+            'date': now().strftime('%d %b %Y'),
+        }
+
+        html_string = render_to_string('billing/receipt.html', context, request=request)
+        pdf_bytes = weasyprint.HTML(string=html_string, base_url=request.build_absolute_uri('/')).write_pdf()
+
+        filename = f"receipt_{payment.id}_{now().strftime('%Y%m%d')}.pdf"
+        response = HttpResponse(pdf_bytes, content_type='application/pdf')
+        response['Content-Disposition'] = f'inline; filename="{filename}"'
+        return response
 
 class EntitlementViewSet(BillingBaseViewSet):
     queryset = Entitlement.objects.all().select_related('patient', 'procedure_type')

@@ -20,6 +20,21 @@ async function downloadPdfBlob(endpoint: string, filename: string) {
     URL.revokeObjectURL(url);
 }
 
+async function openPdfInNewTab(endpoint: string) {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('skinflow_access_token') : null;
+    const headers: Record<string, string> = { Accept: 'application/pdf' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    const res = await fetch(`${DJANGO_BASE_URL}/api/${endpoint}`, { headers });
+    if (!res.ok) throw new Error(`PDF generation failed (${res.status})`);
+
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    window.open(url, '_blank');
+    // Revoke after a short delay to allow the new tab to load
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+}
+
 export const billingApi = {
     invoices: {
         list: (params?: { patient?: number; status?: string; limit?: number }) =>
@@ -54,6 +69,9 @@ export const billingApi = {
                 method: 'POST',
                 body: JSON.stringify(data),
             }),
+
+        openReceiptPdf: (id: number | string) =>
+            openPdfInNewTab(`billing/payments/${id}/receipt-pdf/`),
     },
 
     entitlements: {

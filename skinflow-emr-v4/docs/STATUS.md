@@ -14,7 +14,7 @@
 | Prescriptions | Complete | Complete | Medications, procedures, products |
 | Procedure Sessions | Complete | Complete | Full workflow; entitlement consumed on completion (AD-024); cancellation blocked when consumables issued (AD-025) |
 | Billing/Invoices | Complete | Complete | Partial billing, selection screen |
-| Payments | Complete | Complete | Multiple methods incl. split payments |
+| Payments | Complete | Complete | Multiple methods incl. split payments; receipt PDF via WeasyPrint (April 14, 2026) |
 | Entitlements | Complete | Complete | Auto-creation works; Schedule Session flow on patient page |
 | Inventory | Complete | Complete | Full module; GRN confirm bugs fixed (AD-026); Adjust Stock UI added |
 | Fulfillment Queue | Complete | Complete | Manual handover queue; auto-deducts stock on Hand Over when product FK is set (AD-026) |
@@ -68,7 +68,7 @@
 - Session list (daily view with procedure info)
 - Invoice list with status filtering
 - Invoice detail view
-- Payment recording
+- Payment recording with Print Receipt button (opens WeasyPrint PDF in new tab; also shows on post-payment success state)
 - Finance overview (revenue cards, navigation)
 - Accounting module basic UI (Chart of Accounts, Journals, Banking, Reports tabs - see Partial section)
 - Inventory dashboard
@@ -253,7 +253,7 @@ Highest daily value for clinic staff.
 
 ---
 
-*Last reviewed: April 13, 2026 — Stage 2 complete + business rule fixes: entitlement consumed on completion (AD-024), 3-layer capacity enforcement (perform_create/start_session/perform_update), cancellation blocked when consumables issued (AD-025), photo upload URL fixed, planned_qty duplicate guard, consent optional*
+*Last reviewed: April 14, 2026 — Payment receipt PDF added: WeasyPrint A5 receipt template (`billing/templates/billing/receipt.html`), `/api/billing/payments/{id}/receipt-pdf/` endpoint, Print Receipt button per payment row + post-payment success banner on invoice detail page*
 
 ---
 

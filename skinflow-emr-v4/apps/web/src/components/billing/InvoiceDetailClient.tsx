@@ -19,7 +19,7 @@ import {
     Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Printer, ArrowLeft, CheckCircle2, Clock, FileText, User, Download } from 'lucide-react';
+import { Printer, ArrowLeft, CheckCircle2, Clock, FileText, User, Download, Receipt } from 'lucide-react';
 import type { Invoice } from '@/types/models';
 import { useAuth } from '@/lib/context/AuthContext';
 import { InvoiceSessionsPanel } from './InvoiceSessionsPanel';
@@ -68,17 +68,20 @@ export function InvoiceDetailClient({ initialData }: { initialData: Invoice }) {
         amount: invoice.balance_due,
         method: 'CASH'
     });
+    const [lastPaymentId, setLastPaymentId] = useState<number | null>(null);
+    const [receiptLoadingId, setReceiptLoadingId] = useState<number | null>(null);
 
     const handleRecordPayment = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsSubmitting(true);
         try {
-            await billingApi.payments.create({
+            const newPayment = await billingApi.payments.create({
                 invoice: invoice.id,
                 amount: paymentData.amount,
                 method: paymentData.method as any,
                 status: 'COMPLETED'
             });
+            setLastPaymentId(newPayment.id);
             toast.success("Payment recorded successfully");
             setPaymentModalOpen(false);
             const updated = await billingApi.invoices.get(invoice.id);
@@ -88,6 +91,17 @@ export function InvoiceDetailClient({ initialData }: { initialData: Invoice }) {
             toast.error(error.message || "Failed to record payment");
         } finally {
             setIsSubmitting(false);
+        }
+    };
+
+    const handlePrintReceipt = async (paymentId: number) => {
+        setReceiptLoadingId(paymentId);
+        try {
+            await billingApi.payments.openReceiptPdf(paymentId);
+        } catch {
+            toast.error("Failed to generate receipt PDF. Please try again.");
+        } finally {
+            setReceiptLoadingId(null);
         }
     };
 
@@ -236,36 +250,68 @@ export function InvoiceDetailClient({ initialData }: { initialData: Invoice }) {
                         {(!invoice.payments || invoice.payments.length === 0) ? (
                             <p className="text-muted-foreground text-sm italic">No payments recorded yet.</p>
                         ) : (
-                            <Table>
-                                <TableHeader>
-                                    <TableRow className="bg-slate-50">
-                                        <TableHead>Date & Time</TableHead>
-                                        <TableHead>Method</TableHead>
-                                        <TableHead>Status</TableHead>
-                                        <TableHead className="text-right">Amount</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {invoice.payments.map((p) => (
-                                        <TableRow key={p.id}>
-                                            <TableCell>{format(new Date(p.created_at), 'MMM d, yyyy h:mm a')}</TableCell>
-                                            <TableCell>
-                                                <Badge variant="outline" className="capitalize">
-                                                    {p.method.replace('_', ' ').toLowerCase()}
-                                                </Badge>
-                                            </TableCell>
-                                            <TableCell>
-                                                <Badge variant="outline" className={`bg-[#F7F3ED] ${p.status === 'COMPLETED' ? 'text-[#7A9E8A] border-[#7A9E8A]/30' : 'text-[#A0978D] border-[#D9D0C5]'}`}>
-                                                    {p.status}
-                                                </Badge>
-                                            </TableCell>
-                                            <TableCell className="text-right font-medium text-[#1C1917]">
-                                                {formatCurrency(p.amount)}
-                                            </TableCell>
+                            <>
+                                {lastPaymentId && (
+                                    <div className="mb-3 flex items-center justify-between rounded-lg bg-[#F0FDF4] border border-[#6EE7B7]/50 px-4 py-2.5">
+                                        <span className="text-sm text-[#065F46] font-medium flex items-center gap-1.5">
+                                            <CheckCircle2 className="h-4 w-4" /> Payment recorded
+                                        </span>
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            className="h-8 text-xs border-[#6EE7B7] text-[#065F46] hover:bg-[#D1FAE5]"
+                                            disabled={receiptLoadingId === lastPaymentId}
+                                            onClick={() => handlePrintReceipt(lastPaymentId)}
+                                        >
+                                            <Receipt className="mr-1.5 h-3.5 w-3.5" />
+                                            {receiptLoadingId === lastPaymentId ? 'Generating…' : 'Print Receipt'}
+                                        </Button>
+                                    </div>
+                                )}
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow className="bg-slate-50">
+                                            <TableHead>Date & Time</TableHead>
+                                            <TableHead>Method</TableHead>
+                                            <TableHead>Status</TableHead>
+                                            <TableHead className="text-right">Amount</TableHead>
+                                            <TableHead />
                                         </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {invoice.payments.map((p) => (
+                                            <TableRow key={p.id}>
+                                                <TableCell>{format(new Date(p.created_at), 'MMM d, yyyy h:mm a')}</TableCell>
+                                                <TableCell>
+                                                    <Badge variant="outline" className="capitalize">
+                                                        {p.method.replace('_', ' ').toLowerCase()}
+                                                    </Badge>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Badge variant="outline" className={`bg-[#F7F3ED] ${p.status === 'COMPLETED' ? 'text-[#7A9E8A] border-[#7A9E8A]/30' : 'text-[#A0978D] border-[#D9D0C5]'}`}>
+                                                        {p.status}
+                                                    </Badge>
+                                                </TableCell>
+                                                <TableCell className="text-right font-medium text-[#1C1917]">
+                                                    {formatCurrency(p.amount)}
+                                                </TableCell>
+                                                <TableCell className="text-right">
+                                                    <Button
+                                                        size="sm"
+                                                        variant="ghost"
+                                                        className="h-7 px-2 text-xs text-[#78706A] hover:text-[#1C1917]"
+                                                        disabled={receiptLoadingId === p.id}
+                                                        onClick={() => handlePrintReceipt(p.id)}
+                                                    >
+                                                        <Receipt className="mr-1 h-3.5 w-3.5" />
+                                                        {receiptLoadingId === p.id ? 'Generating…' : 'Receipt'}
+                                                    </Button>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </>
                         )}
                     </div>
                     {/* Sessions to Schedule — shown on PAID invoices with procedure entitlements */}

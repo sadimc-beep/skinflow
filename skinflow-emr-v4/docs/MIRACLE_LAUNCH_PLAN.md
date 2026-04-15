@@ -133,7 +133,7 @@
 
 - [ ] Prescription print template (clinic letterhead, all Rx components)
 - [ ] Invoice print template
-- [ ] Payment receipt / money receipt template
+- [x] Payment receipt / money receipt template — WeasyPrint PDF via `/api/billing/payments/{id}/receipt-pdf/`; Print Receipt button per payment row + post-payment success state on invoice detail (April 14, 2026)
 - [ ] Fix Print Rx button on consultation page
 - [ ] Fix PDF generation (currently opens HTML print dialog)
 - [ ] Test all prints on actual printer
